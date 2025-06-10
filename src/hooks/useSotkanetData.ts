@@ -1,4 +1,3 @@
-
 import { useQuery } from '@tanstack/react-query';
 import { sotkanetService, INDICATORS } from '@/services/sotkanetService';
 import { ProcessedMetricsSet, ProcessedMetric } from '@/types/sotkanet';
@@ -55,11 +54,16 @@ export const useSotkanetMetrics = (area: string, location: string) => {
         throw new Error(`Unknown area: ${area}`);
       }
 
+      const indicatorNumbers = Object.values(areaIndicators);
+      console.log('Fetching indicators:', indicatorNumbers);
+      
+      // Anna pidemmälle aikaa API-kutsulle
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 sekuntia
+      
       try {
-        const indicatorNumbers = Object.values(areaIndicators);
-        console.log('Fetching indicators:', indicatorNumbers);
-        
         const data = await sotkanetService.getMultipleIndicators(indicatorNumbers);
+        clearTimeout(timeoutId);
         
         console.log('Sotkanet data received:', data);
 
@@ -68,7 +72,7 @@ export const useSotkanetMetrics = (area: string, location: string) => {
           console.log('No data received from Sotkanet, using fallback data');
           toast({
             title: "Tietojen haku epäonnistui",
-            description: "Käytetään simuloitua dataa. Tarkista internetyhteys.",
+            description: "Sotkanet API ei vastannut. Käytetään simuloitua dataa.",
             variant: "destructive",
           });
           return getFallbackMetrics(area);
@@ -83,39 +87,52 @@ export const useSotkanetMetrics = (area: string, location: string) => {
           
           console.log(`Processing ${key} (indicator ${indicatorNum}):`, dataPoint);
           
-          if (dataPoint && targets[key]) {
-            // Laske trendi (simuloitu, koska tarvitsisi historiadata)
+          if (dataPoint && dataPoint.value !== null && dataPoint.value !== undefined && targets[key]) {
             const trend = dataPoint.value >= targets[key] ? 'up' : 'down';
             
             processedMetrics[key] = {
-              value: dataPoint.value || 0,
+              value: dataPoint.value,
               target: targets[key],
               trend: trend as 'up' | 'down',
               unit: UNITS[key as keyof typeof UNITS],
               name: key
             };
           } else {
-            // Fallback simuloituun dataan jos yksittäinen mittari puuttuu
-            console.log(`No data found for ${key}, using fallback`);
+            console.log(`No valid data found for ${key}, using fallback`);
             const fallbackData = getFallbackData(area, key);
             processedMetrics[key] = fallbackData;
           }
         });
 
         console.log('Processed metrics:', processedMetrics);
+        
+        // Näytä onnistumisviesti jos saatiin oikeaa dataa
+        const hasRealData = Object.values(processedMetrics).some(metric => 
+          data.some(d => d.value === metric.value)
+        );
+        
+        if (hasRealData) {
+          toast({
+            title: "Tiedot päivitetty",
+            description: "Sotkanet data haettu onnistuneesti.",
+          });
+        }
+        
         return processedMetrics;
       } catch (error) {
+        clearTimeout(timeoutId);
         console.error('Error processing Sotkanet data:', error);
         toast({
           title: "Virhe tietojen käsittelyssä",
-          description: "Käytetään simuloitua dataa.",
+          description: "Käytetään simuloitua dataa. Tarkista internetyhteys.",
           variant: "destructive",
         });
         return getFallbackMetrics(area);
       }
     },
-    staleTime: 10 * 60 * 1000, // 10 minuuttia
-    retry: 1,
+    staleTime: 5 * 60 * 1000, // 5 minuuttia
+    retry: 2,
+    retryDelay: 1000,
     refetchOnWindowFocus: false,
   });
 };

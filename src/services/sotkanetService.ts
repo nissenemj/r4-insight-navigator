@@ -1,8 +1,8 @@
 
 import { SotkanetDataPoint, SotkanetRegion, SotkanetIndicator } from '@/types/sotkanet';
 
-// Käytetään CORS-proxya Sotkanet API-kutsujen mahdollistamiseksi
-const CORS_PROXY = 'https://cors-anywhere.herokuapp.com/';
+// Käytetään luotettavaa CORS-proxya
+const CORS_PROXY = 'https://api.allorigins.win/raw?url=';
 const BASE_URL = 'https://sotkanet.fi/api/2';
 
 // PSHVA hyvinvointialueen koodi
@@ -37,19 +37,44 @@ class SotkanetService {
     try {
       console.log(`Attempting to fetch: ${endpoint}`);
       
-      // Kokeile ensin ilman proxya
+      // Kokeile ensin suoraa kutsua
       let url = `${BASE_URL}${endpoint}`;
-      let response = await fetch(url);
+      let response: Response;
       
-      // Jos epäonnistuu CORS-virheen vuoksi, kokeile proxyn kanssa
-      if (!response.ok && useProxy) {
-        console.log('Direct fetch failed, trying with CORS proxy...');
-        url = `${CORS_PROXY}${BASE_URL}${endpoint}`;
-        response = await fetch(url);
+      try {
+        response = await fetch(url, {
+          mode: 'cors',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+          }
+        });
+      } catch (corsError) {
+        console.log('Direct fetch failed due to CORS, trying with proxy...');
+        
+        if (useProxy) {
+          // Käytä CORS-proxya
+          const encodedUrl = encodeURIComponent(`${BASE_URL}${endpoint}`);
+          url = `${CORS_PROXY}${encodedUrl}`;
+          
+          try {
+            response = await fetch(url, {
+              headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+              }
+            });
+          } catch (proxyError) {
+            console.error('Proxy fetch also failed:', proxyError);
+            throw new Error('Both direct and proxy requests failed');
+          }
+        } else {
+          throw corsError;
+        }
       }
       
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        throw new Error(`HTTP error! status: ${response.status} - ${response.statusText}`);
       }
       
       const data = await response.json();
@@ -57,7 +82,7 @@ class SotkanetService {
       return data;
     } catch (error) {
       console.error('Sotkanet API error:', error);
-      // Palautetaan tyhjä data virhetilanteessa
+      // Palautetaan tyhjä array virhetilanteessa
       return [] as unknown as T;
     }
   }
@@ -86,8 +111,7 @@ class SotkanetService {
     year?: number
   ): Promise<SotkanetDataPoint[]> {
     try {
-      const currentYear = year || new Date().getFullYear() - 1; // Käytä edellistä vuotta
-      // KORJAUS: Muunna regions-lista pilkulla erotetuksi merkkijonoksi
+      const currentYear = year || new Date().getFullYear() - 1;
       const regionsParam = regions.join(',');
       
       return await this.fetchData<SotkanetDataPoint[]>(
@@ -104,7 +128,6 @@ class SotkanetService {
     years: number[] = [2022, 2023]
   ): Promise<SotkanetDataPoint[]> {
     try {
-      // KORJAUS: Muunna years-lista pilkulla erotetuksi merkkijonoksi
       const yearsParam = years.join(',');
       
       return await this.fetchData<SotkanetDataPoint[]>(
@@ -121,7 +144,6 @@ class SotkanetService {
     region: string = PSHVA_CODE
   ): Promise<SotkanetDataPoint[]> {
     try {
-      // KORJAUS: Muunna indicators-lista pilkulla erotetuksi merkkijonoksi
       const indicatorsParam = indicators.join(',');
       
       return await this.fetchData<SotkanetDataPoint[]>(
