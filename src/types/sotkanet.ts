@@ -12,7 +12,9 @@ export interface SotkanetDataPoint {
   region: string;
   value: number;
   gender: string;
-  absoluteValue?: number;
+  absolute_value?: number; // Changed from absoluteValue to absolute_value to match API
+  region_title?: string;   // Added to match API response
+  indicator_title?: string; // Added to match API response
 }
 
 export interface SotkanetRegion {
