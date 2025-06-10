@@ -2,6 +2,8 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, BarChart, Bar } from 'recharts';
+import { Loader2 } from 'lucide-react';
+import { useSotkanetTrends } from '@/hooks/useSotkanetData';
 
 interface TrendChartProps {
   area: string;
@@ -9,32 +11,8 @@ interface TrendChartProps {
 }
 
 export const TrendChart = ({ area, location }: TrendChartProps) => {
-  // Simuloitu trendidata
-  const generateTrendData = () => {
-    const months = ['Tam', 'Hel', 'Maa', 'Huh', 'Tou', 'Kes', 'Hei', 'Elo', 'Syy', 'Lok', 'Mar', 'Jou'];
-    
-    const baseData = months.map((month, index) => {
-      const baseValue = area === 'avoterveydenhuolto' ? 2500 :
-                       area === 'leikkaustoiminta' ? 150 :
-                       area === 'paivystys' ? 800 : 20;
-      
-      const seasonalVariation = Math.sin((index / 12) * 2 * Math.PI) * (baseValue * 0.1);
-      const trend = index * (baseValue * 0.02);
-      const noise = (Math.random() - 0.5) * (baseValue * 0.1);
-      
-      return {
-        month,
-        current: Math.round(baseValue + seasonalVariation + trend + noise),
-        target: baseValue + trend,
-        costs: Math.round((baseValue + seasonalVariation + trend + noise) * 150), // Kustannukset euroina
-      };
-    });
+  const { data, isLoading, error } = useSotkanetTrends(area, location);
 
-    return baseData;
-  };
-
-  const data = generateTrendData();
-  
   const chartConfig = {
     current: {
       label: "Toteutunut",
@@ -52,13 +30,53 @@ export const TrendChart = ({ area, location }: TrendChartProps) => {
 
   const getChartTitle = () => {
     const titles = {
-      avoterveydenhuolto: 'Käyntimäärät ja kustannukset',
-      leikkaustoiminta: 'Leikkausmäärät ja kustannukset',
-      paivystys: 'Päivystyskäynnit ja kustannukset',
-      tutkimus: 'Tutkimushankkeet ja rahoitus'
+      avoterveydenhuolto: 'Käyntimäärät ja kustannukset (Sotkanet)',
+      leikkaustoiminta: 'Leikkausmäärät ja kustannukset (Sotkanet)',
+      paivystys: 'Päivystyskäynnit ja kustannukset (Sotkanet)',
+      tutkimus: 'Tutkimushankkeet ja rahoitus (Sotkanet)'
     };
-    return titles[area as keyof typeof titles] || 'Trendianalyysi';
+    return titles[area as keyof typeof titles] || 'Trendianalyysi (Sotkanet)';
   };
+
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {[1, 2].map((i) => (
+          <Card key={i} className="animate-pulse">
+            <CardHeader>
+              <div className="h-6 bg-gray-200 rounded w-3/4"></div>
+              <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-center h-[300px]">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    );
+  }
+
+  if (error || !data) {
+    return (
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <Card>
+          <CardHeader>
+            <CardTitle>{getChartTitle()}</CardTitle>
+            <CardDescription className="text-destructive">
+              Virhe tietojen haussa Sotkanetista
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-center h-[300px] text-muted-foreground">
+              Ei voitu ladata trendidata
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -102,7 +120,7 @@ export const TrendChart = ({ area, location }: TrendChartProps) => {
         <CardHeader>
           <CardTitle>Kustannuskehitys</CardTitle>
           <CardDescription>
-            Kuukausittaiset kustannukset euroina
+            Kuukausittaiset kustannukset euroina (arvio Sotkanet-datan pohjalta)
           </CardDescription>
         </CardHeader>
         <CardContent>
