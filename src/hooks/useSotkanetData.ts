@@ -2,6 +2,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { sotkanetService, INDICATORS } from '@/services/sotkanetService';
 import { ProcessedMetricsSet, ProcessedMetric } from '@/types/sotkanet';
+import { useToast } from '@/hooks/use-toast';
 
 // Simuloidut tavoitearvot (koska Sotkanetista ei saa tavoitteita)
 const TARGETS = {
@@ -42,6 +43,8 @@ const UNITS = {
 };
 
 export const useSotkanetMetrics = (area: string, location: string) => {
+  const { toast } = useToast();
+
   return useQuery({
     queryKey: ['sotkanet-metrics', area, location],
     queryFn: async () => {
@@ -52,40 +55,62 @@ export const useSotkanetMetrics = (area: string, location: string) => {
         throw new Error(`Unknown area: ${area}`);
       }
 
-      const indicatorNumbers = Object.values(areaIndicators);
-      const data = await sotkanetService.getMultipleIndicators(indicatorNumbers);
-      
-      console.log('Sotkanet data received:', data);
-
-      // Prosessoi data komponenttien käyttämään muotoon
-      const processedMetrics: ProcessedMetricsSet = {};
-      
-      Object.entries(areaIndicators).forEach(([key, indicatorNum]) => {
-        const dataPoint = data.find(d => d.indicator === indicatorNum);
-        const targets = TARGETS[area as keyof typeof TARGETS] as any;
+      try {
+        const indicatorNumbers = Object.values(areaIndicators);
+        const data = await sotkanetService.getMultipleIndicators(indicatorNumbers);
         
-        if (dataPoint && targets[key]) {
-          // Laske trendi (simuloitu, koska tarvitsisi historiadata)
-          const trend = dataPoint.value >= targets[key] ? 'up' : 'down';
-          
-          processedMetrics[key] = {
-            value: dataPoint.value || 0,
-            target: targets[key],
-            trend: trend as 'up' | 'down',
-            unit: UNITS[key as keyof typeof UNITS],
-            name: key
-          };
-        } else {
-          // Fallback simuloituun dataan jos API-kutsu epäonnistuu
-          const fallbackData = getFallbackData(area, key);
-          processedMetrics[key] = fallbackData;
-        }
-      });
+        console.log('Sotkanet data received:', data);
 
-      return processedMetrics;
+        // Jos data on tyhjä tai ei saatu, käytä fallback-dataa
+        if (!data || data.length === 0) {
+          console.log('No data received from Sotkanet, using fallback data');
+          toast({
+            title: "Tietojen haku epäonnistui",
+            description: "Käytetään simuloitua dataa. Tarkista internetyhteys.",
+            variant: "destructive",
+          });
+          return getFallbackMetrics(area);
+        }
+
+        // Prosessoi data komponenttien käyttämään muotoon
+        const processedMetrics: ProcessedMetricsSet = {};
+        
+        Object.entries(areaIndicators).forEach(([key, indicatorNum]) => {
+          const dataPoint = data.find(d => d.indicator === indicatorNum);
+          const targets = TARGETS[area as keyof typeof TARGETS] as any;
+          
+          if (dataPoint && targets[key]) {
+            // Laske trendi (simuloitu, koska tarvitsisi historiadata)
+            const trend = dataPoint.value >= targets[key] ? 'up' : 'down';
+            
+            processedMetrics[key] = {
+              value: dataPoint.value || 0,
+              target: targets[key],
+              trend: trend as 'up' | 'down',
+              unit: UNITS[key as keyof typeof UNITS],
+              name: key
+            };
+          } else {
+            // Fallback simuloituun dataan jos yksittäinen mittari puuttuu
+            const fallbackData = getFallbackData(area, key);
+            processedMetrics[key] = fallbackData;
+          }
+        });
+
+        return processedMetrics;
+      } catch (error) {
+        console.error('Error processing Sotkanet data:', error);
+        toast({
+          title: "Virhe tietojen käsittelyssä",
+          description: "Käytetään simuloitua dataa.",
+          variant: "destructive",
+        });
+        return getFallbackMetrics(area);
+      }
     },
-    staleTime: 5 * 60 * 1000, // 5 minuuttia
-    retry: 2,
+    staleTime: 10 * 60 * 1000, // 10 minuuttia
+    retry: 1,
+    refetchOnWindowFocus: false,
   });
 };
 
@@ -97,38 +122,63 @@ export const useSotkanetTrends = (area: string, location: string) => {
       
       const areaIndicators = INDICATORS[area as keyof typeof INDICATORS];
       if (!areaIndicators) {
-        return [];
+        return getFallbackTrendData();
       }
 
-      // Hae pääindikaattori trendeille
-      const mainIndicator = Object.values(areaIndicators)[0];
-      const trendData = await sotkanetService.getComparisonData(mainIndicator, [2020, 2021, 2022, 2023]);
-      
-      console.log('Trend data received:', trendData);
-
-      // Muodosta kuukausittainen data (simuloitu jakauma vuosidata)
-      const months = ['Tam', 'Hel', 'Maa', 'Huh', 'Tou', 'Kes', 'Hei', 'Elo', 'Syy', 'Lok', 'Mar', 'Jou'];
-      const latestYear = trendData.find(d => d.year === 2023);
-      const baseValue = latestYear?.value || 1000;
-
-      return months.map((month, index) => {
-        const seasonalVariation = Math.sin((index / 12) * 2 * Math.PI) * (baseValue * 0.1);
-        const noise = (Math.random() - 0.5) * (baseValue * 0.05);
+      try {
+        // Hae pääindikaattori trendeille
+        const mainIndicator = Object.values(areaIndicators)[0];
+        const trendData = await sotkanetService.getComparisonData(mainIndicator, [2020, 2021, 2022, 2023]);
         
-        return {
-          month,
-          current: Math.round(baseValue + seasonalVariation + noise),
-          target: baseValue,
-          costs: Math.round((baseValue + seasonalVariation + noise) * 150),
-        };
-      });
+        console.log('Trend data received:', trendData);
+
+        // Jos ei saada dataa, käytä fallback-dataa
+        if (!trendData || trendData.length === 0) {
+          console.log('No trend data received, using fallback');
+          return getFallbackTrendData();
+        }
+
+        // Muodosta kuukausittainen data (simuloitu jakauma vuosidata)
+        const months = ['Tam', 'Hel', 'Maa', 'Huh', 'Tou', 'Kes', 'Hei', 'Elo', 'Syy', 'Lok', 'Mar', 'Jou'];
+        const latestYear = trendData.find(d => d.year === 2023);
+        const baseValue = latestYear?.value || 1000;
+
+        return months.map((month, index) => {
+          const seasonalVariation = Math.sin((index / 12) * 2 * Math.PI) * (baseValue * 0.1);
+          const noise = (Math.random() - 0.5) * (baseValue * 0.05);
+          
+          return {
+            month,
+            current: Math.round(baseValue + seasonalVariation + noise),
+            target: baseValue,
+            costs: Math.round((baseValue + seasonalVariation + noise) * 150),
+          };
+        });
+      } catch (error) {
+        console.error('Error fetching trend data:', error);
+        return getFallbackTrendData();
+      }
     },
-    staleTime: 10 * 60 * 1000, // 10 minuuttia
+    staleTime: 15 * 60 * 1000, // 15 minuuttia
     retry: 1,
+    refetchOnWindowFocus: false,
   });
 };
 
-// Fallback-data jos API-kutsu epäonnistuu
+// Fallback-data koko osa-alueelle
+function getFallbackMetrics(area: string): ProcessedMetricsSet {
+  const fallbackData = getFallbackData(area, '');
+  const areaKeys = Object.keys(TARGETS[area as keyof typeof TARGETS] || {});
+  
+  const metrics: ProcessedMetricsSet = {};
+  areaKeys.forEach(key => {
+    metrics[key] = getFallbackData(area, key);
+  });
+  
+  return metrics;
+}
+
+// Fallback-data yksittäiselle mittarille
 function getFallbackData(area: string, key: string): ProcessedMetric {
   const fallbackValues: any = {
     avoterveydenhuolto: {
@@ -157,4 +207,22 @@ function getFallbackData(area: string, key: string): ProcessedMetric {
     ...fallbackValues[area]?.[key] || { value: 0, target: 100, trend: 'up', unit: '' },
     name: key
   };
+}
+
+// Fallback trendidata
+function getFallbackTrendData() {
+  const months = ['Tam', 'Hel', 'Maa', 'Huh', 'Tou', 'Kes', 'Hei', 'Elo', 'Syy', 'Lok', 'Mar', 'Jou'];
+  const baseValue = 1000;
+
+  return months.map((month, index) => {
+    const seasonalVariation = Math.sin((index / 12) * 2 * Math.PI) * (baseValue * 0.1);
+    const noise = (Math.random() - 0.5) * (baseValue * 0.05);
+    
+    return {
+      month,
+      current: Math.round(baseValue + seasonalVariation + noise),
+      target: baseValue,
+      costs: Math.round((baseValue + seasonalVariation + noise) * 150),
+    };
+  });
 }

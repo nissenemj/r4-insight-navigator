@@ -1,6 +1,8 @@
 
 import { SotkanetDataPoint, SotkanetRegion, SotkanetIndicator } from '@/types/sotkanet';
 
+// Käytetään CORS-proxya Sotkanet API-kutsujen mahdollistamiseksi
+const CORS_PROXY = 'https://cors-anywhere.herokuapp.com/';
 const BASE_URL = 'https://sotkanet.fi/api/2';
 
 // PSHVA hyvinvointialueen koodi
@@ -31,25 +33,51 @@ export const INDICATORS = {
 };
 
 class SotkanetService {
-  private async fetchData<T>(endpoint: string): Promise<T> {
+  private async fetchData<T>(endpoint: string, useProxy: boolean = true): Promise<T> {
     try {
-      const response = await fetch(`${BASE_URL}${endpoint}`);
+      console.log(`Attempting to fetch: ${endpoint}`);
+      
+      // Kokeile ensin ilman proxya
+      let url = `${BASE_URL}${endpoint}`;
+      let response = await fetch(url);
+      
+      // Jos epäonnistuu CORS-virheen vuoksi, kokeile proxyn kanssa
+      if (!response.ok && useProxy) {
+        console.log('Direct fetch failed, trying with CORS proxy...');
+        url = `${CORS_PROXY}${BASE_URL}${endpoint}`;
+        response = await fetch(url);
+      }
+      
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      return await response.json();
+      
+      const data = await response.json();
+      console.log('Successfully fetched data:', data);
+      return data;
     } catch (error) {
       console.error('Sotkanet API error:', error);
-      throw new Error('Tietojen haku epäonnistui');
+      // Palautetaan tyhjä data virhetilanteessa
+      return [] as unknown as T;
     }
   }
 
   async getRegions(): Promise<SotkanetRegion[]> {
-    return this.fetchData<SotkanetRegion[]>('/regions?type=HYVINVOINTIALUE');
+    try {
+      return await this.fetchData<SotkanetRegion[]>('/regions?type=HYVINVOINTIALUE');
+    } catch (error) {
+      console.error('Failed to fetch regions:', error);
+      return [];
+    }
   }
 
   async getIndicators(): Promise<SotkanetIndicator[]> {
-    return this.fetchData<SotkanetIndicator[]>('/indicators');
+    try {
+      return await this.fetchData<SotkanetIndicator[]>('/indicators');
+    } catch (error) {
+      console.error('Failed to fetch indicators:', error);
+      return [];
+    }
   }
 
   async getIndicatorData(
@@ -57,34 +85,49 @@ class SotkanetService {
     regions: string[] = [PSHVA_CODE], 
     year?: number
   ): Promise<SotkanetDataPoint[]> {
-    const currentYear = year || new Date().getFullYear() - 1; // Käytä edellistä vuotta
-    const regionsParam = regions.join(',');
-    
-    return this.fetchData<SotkanetDataPoint[]>(
-      `/data?indicator=${indicator}&regions=${regionsParam}&year=${currentYear}&genders=total`
-    );
+    try {
+      const currentYear = year || new Date().getFullYear() - 1; // Käytä edellistä vuotta
+      const regionsParam = regions.join(',');
+      
+      return await this.fetchData<SotkanetDataPoint[]>(
+        `/data?indicator=${indicator}&regions=${regionsParam}&year=${currentYear}&genders=total`
+      );
+    } catch (error) {
+      console.error('Failed to fetch indicator data:', error);
+      return [];
+    }
   }
 
   async getComparisonData(
     indicator: number, 
     years: number[] = [2022, 2023]
   ): Promise<SotkanetDataPoint[]> {
-    const yearsParam = years.join(',');
-    
-    return this.fetchData<SotkanetDataPoint[]>(
-      `/data?indicator=${indicator}&regions=${PSHVA_CODE}&year=${yearsParam}&genders=total`
-    );
+    try {
+      const yearsParam = years.join(',');
+      
+      return await this.fetchData<SotkanetDataPoint[]>(
+        `/data?indicator=${indicator}&regions=${PSHVA_CODE}&year=${yearsParam}&genders=total`
+      );
+    } catch (error) {
+      console.error('Failed to fetch comparison data:', error);
+      return [];
+    }
   }
 
   async getMultipleIndicators(
     indicators: number[], 
     region: string = PSHVA_CODE
   ): Promise<SotkanetDataPoint[]> {
-    const indicatorsParam = indicators.join(',');
-    
-    return this.fetchData<SotkanetDataPoint[]>(
-      `/data?indicator=${indicatorsParam}&regions=${region}&genders=total`
-    );
+    try {
+      const indicatorsParam = indicators.join(',');
+      
+      return await this.fetchData<SotkanetDataPoint[]>(
+        `/data?indicator=${indicatorsParam}&regions=${region}&genders=total`
+      );
+    } catch (error) {
+      console.error('Failed to fetch multiple indicators:', error);
+      return [];
+    }
   }
 }
 
