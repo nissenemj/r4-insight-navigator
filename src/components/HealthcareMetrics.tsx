@@ -9,29 +9,40 @@ interface HealthcareMetricsProps {
   location: string;
 }
 
+interface MetricData {
+  value: number;
+  target: number;
+  trend: 'up' | 'down';
+  unit?: string;
+}
+
+interface MetricsSet {
+  [key: string]: MetricData;
+}
+
 export const HealthcareMetrics = ({ area, location }: HealthcareMetricsProps) => {
   // Simuloitu data eri osa-alueille ja toimipisteille
-  const getMetricsData = () => {
+  const getMetricsData = (): MetricsSet => {
     const baseMetrics = {
       avoterveydenhuolto: {
-        hoitotakuu: { value: 91, target: 95, trend: 'up' },
-        kayntimaara: { value: 2847, target: 3000, trend: 'up', unit: '/1000 as.' },
-        digipalvelut: { value: 73, target: 80, trend: 'up', unit: '%' },
+        hoitotakuu: { value: 91, target: 95, trend: 'up' as const },
+        kayntimaara: { value: 2847, target: 3000, trend: 'up' as const, unit: '/1000 as.' },
+        digipalvelut: { value: 73, target: 80, trend: 'up' as const, unit: '%' },
       },
       leikkaustoiminta: {
-        jonotusaika: { value: 42, target: 30, trend: 'down', unit: 'päivää' },
-        leikkaukset: { value: 156, target: 180, trend: 'up', unit: 'kpl/kk' },
-        peruutukset: { value: 8, target: 5, trend: 'down', unit: '%' },
+        jonotusaika: { value: 42, target: 30, trend: 'down' as const, unit: 'päivää' },
+        leikkaukset: { value: 156, target: 180, trend: 'up' as const, unit: 'kpl/kk' },
+        peruutukset: { value: 8, target: 5, trend: 'down' as const, unit: '%' },
       },
       paivystys: {
-        odotusaika: { value: 28, target: 20, trend: 'down', unit: 'min' },
-        kayntimaara: { value: 892, target: 800, trend: 'up', unit: '/1000 as.' },
-        uudelleenkaynnit: { value: 12, target: 10, trend: 'down', unit: '%' },
+        odotusaika: { value: 28, target: 20, trend: 'down' as const, unit: 'min' },
+        kayntimaara: { value: 892, target: 800, trend: 'up' as const, unit: '/1000 as.' },
+        uudelleenkaynnit: { value: 12, target: 10, trend: 'down' as const, unit: '%' },
       },
       tutkimus: {
-        hankkeet: { value: 23, target: 25, trend: 'up', unit: 'kpl' },
-        palaute: { value: 4.2, target: 4.0, trend: 'up', unit: '/5' },
-        julkaisut: { value: 18, target: 20, trend: 'up', unit: 'kpl/v' },
+        hankkeet: { value: 23, target: 25, trend: 'up' as const, unit: 'kpl' },
+        palaute: { value: 4.2, target: 4.0, trend: 'up' as const, unit: '/5' },
+        julkaisut: { value: 18, target: 20, trend: 'up' as const, unit: 'kpl/v' },
       }
     };
 
