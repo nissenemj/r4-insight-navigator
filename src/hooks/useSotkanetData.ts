@@ -57,6 +57,8 @@ export const useSotkanetMetrics = (area: string, location: string) => {
 
       try {
         const indicatorNumbers = Object.values(areaIndicators);
+        console.log('Fetching indicators:', indicatorNumbers);
+        
         const data = await sotkanetService.getMultipleIndicators(indicatorNumbers);
         
         console.log('Sotkanet data received:', data);
@@ -79,6 +81,8 @@ export const useSotkanetMetrics = (area: string, location: string) => {
           const dataPoint = data.find(d => d.indicator === indicatorNum);
           const targets = TARGETS[area as keyof typeof TARGETS] as any;
           
+          console.log(`Processing ${key} (indicator ${indicatorNum}):`, dataPoint);
+          
           if (dataPoint && targets[key]) {
             // Laske trendi (simuloitu, koska tarvitsisi historiadata)
             const trend = dataPoint.value >= targets[key] ? 'up' : 'down';
@@ -92,11 +96,13 @@ export const useSotkanetMetrics = (area: string, location: string) => {
             };
           } else {
             // Fallback simuloituun dataan jos yksittäinen mittari puuttuu
+            console.log(`No data found for ${key}, using fallback`);
             const fallbackData = getFallbackData(area, key);
             processedMetrics[key] = fallbackData;
           }
         });
 
+        console.log('Processed metrics:', processedMetrics);
         return processedMetrics;
       } catch (error) {
         console.error('Error processing Sotkanet data:', error);
@@ -128,6 +134,8 @@ export const useSotkanetTrends = (area: string, location: string) => {
       try {
         // Hae pääindikaattori trendeille
         const mainIndicator = Object.values(areaIndicators)[0];
+        console.log('Fetching trend data for indicator:', mainIndicator);
+        
         const trendData = await sotkanetService.getComparisonData(mainIndicator, [2020, 2021, 2022, 2023]);
         
         console.log('Trend data received:', trendData);

@@ -87,6 +87,7 @@ class SotkanetService {
   ): Promise<SotkanetDataPoint[]> {
     try {
       const currentYear = year || new Date().getFullYear() - 1; // Käytä edellistä vuotta
+      // KORJAUS: Muunna regions-lista pilkulla erotetuksi merkkijonoksi
       const regionsParam = regions.join(',');
       
       return await this.fetchData<SotkanetDataPoint[]>(
@@ -103,6 +104,7 @@ class SotkanetService {
     years: number[] = [2022, 2023]
   ): Promise<SotkanetDataPoint[]> {
     try {
+      // KORJAUS: Muunna years-lista pilkulla erotetuksi merkkijonoksi
       const yearsParam = years.join(',');
       
       return await this.fetchData<SotkanetDataPoint[]>(
@@ -119,6 +121,7 @@ class SotkanetService {
     region: string = PSHVA_CODE
   ): Promise<SotkanetDataPoint[]> {
     try {
+      // KORJAUS: Muunna indicators-lista pilkulla erotetuksi merkkijonoksi
       const indicatorsParam = indicators.join(',');
       
       return await this.fetchData<SotkanetDataPoint[]>(
