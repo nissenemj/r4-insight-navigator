@@ -47,35 +47,37 @@ export const useSotkanetMetrics = (area: string, location: string) => {
   return useQuery({
     queryKey: ['sotkanet-metrics', area, location],
     queryFn: async () => {
-      console.log(`Fetching metrics for area: ${area}, location: ${location}`);
+      console.log(`Haetaan mittareita alueelle: ${area}, sijainti: ${location}`);
       
       const areaIndicators = INDICATORS[area as keyof typeof INDICATORS];
       if (!areaIndicators) {
-        throw new Error(`Unknown area: ${area}`);
+        throw new Error(`Tuntematon alue: ${area}`);
       }
 
       const indicatorNumbers = Object.values(areaIndicators);
-      console.log('Fetching indicators:', indicatorNumbers);
-      
-      // Anna pidemmälle aikaa API-kutsulle
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 sekuntia
+      console.log('Haetaan indikaattorit:', indicatorNumbers);
       
       try {
+        console.log('Aloitetaan Sotkanet API-kutsu...');
         const data = await sotkanetService.getMultipleIndicators(indicatorNumbers);
-        clearTimeout(timeoutId);
         
-        console.log('Sotkanet data received:', data);
+        console.log('Sotkanet vastaus saatu:', data);
 
-        // Jos data on tyhjä tai ei saatu, käytä fallback-dataa
+        // Jos data on tyhjä tai virheellinen
         if (!data || data.length === 0) {
-          console.log('No data received from Sotkanet, using fallback data');
+          console.log('Ei dataa Sotkanetista, käytetään fallback-dataa');
           toast({
             title: "Tietojen haku epäonnistui",
-            description: "Sotkanet API ei vastannut. Käytetään simuloitua dataa.",
+            description: "Sotkanet API ei palauttanut dataa. Käytetään simuloitua dataa.",
             variant: "destructive",
           });
           return getFallbackMetrics(area);
+        }
+
+        // Tarkista että data on oikeassa muodossa
+        if (!Array.isArray(data)) {
+          console.error('Data ei ole array-muodossa:', typeof data);
+          throw new Error('API palautti väärän muotoista dataa');
         }
 
         // Prosessoi data komponenttien käyttämään muotoon
@@ -85,30 +87,36 @@ export const useSotkanetMetrics = (area: string, location: string) => {
           const dataPoint = data.find(d => d.indicator === indicatorNum);
           const targets = TARGETS[area as keyof typeof TARGETS] as any;
           
-          console.log(`Processing ${key} (indicator ${indicatorNum}):`, dataPoint);
+          console.log(`Prosessoidaan ${key} (indikaattori ${indicatorNum}):`, dataPoint);
           
-          if (dataPoint && dataPoint.value !== null && dataPoint.value !== undefined && targets[key]) {
-            const trend = dataPoint.value >= targets[key] ? 'up' : 'down';
+          if (dataPoint && 
+              dataPoint.absolute_value !== null && 
+              dataPoint.absolute_value !== undefined && 
+              targets[key]) {
+            
+            const value = dataPoint.absolute_value;
+            const target = targets[key];
+            const trend = value >= target ? 'up' : 'down';
             
             processedMetrics[key] = {
-              value: dataPoint.value,
-              target: targets[key],
+              value: value,
+              target: target,
               trend: trend as 'up' | 'down',
               unit: UNITS[key as keyof typeof UNITS],
               name: key
             };
           } else {
-            console.log(`No valid data found for ${key}, using fallback`);
+            console.log(`Ei kelvollista dataa kohteelle ${key}, käytetään fallback-dataa`);
             const fallbackData = getFallbackData(area, key);
             processedMetrics[key] = fallbackData;
           }
         });
 
-        console.log('Processed metrics:', processedMetrics);
+        console.log('Prosessoidut mittarit:', processedMetrics);
         
         // Näytä onnistumisviesti jos saatiin oikeaa dataa
         const hasRealData = Object.values(processedMetrics).some(metric => 
-          data.some(d => d.value === metric.value)
+          data.some(d => d.absolute_value === metric.value)
         );
         
         if (hasRealData) {
@@ -120,19 +128,18 @@ export const useSotkanetMetrics = (area: string, location: string) => {
         
         return processedMetrics;
       } catch (error) {
-        clearTimeout(timeoutId);
-        console.error('Error processing Sotkanet data:', error);
+        console.error('Virhe Sotkanet datan käsittelyssä:', error);
         toast({
-          title: "Virhe tietojen käsittelyssä",
-          description: "Käytetään simuloitua dataa. Tarkista internetyhteys.",
+          title: "Virhe tietojen haussa",
+          description: `Sotkanet API-virhe: ${error instanceof Error ? error.message : 'Tuntematon virhe'}. Käytetään simuloitua dataa.`,
           variant: "destructive",
         });
         return getFallbackMetrics(area);
       }
     },
     staleTime: 5 * 60 * 1000, // 5 minuuttia
-    retry: 2,
-    retryDelay: 1000,
+    retry: 1, // Vähennetään retry-määrää
+    retryDelay: 2000,
     refetchOnWindowFocus: false,
   });
 };
