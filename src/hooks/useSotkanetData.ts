@@ -1,5 +1,6 @@
+
 import { useQuery } from '@tanstack/react-query';
-import { sotkanetService, INDICATORS } from '@/services/sotkanetService';
+import { sotkanetService, INDICATORS, PSHVA_REGION_ID } from '@/services/sotkanetService';
 import { ProcessedMetricsSet, ProcessedMetric } from '@/types/sotkanet';
 import { useToast } from '@/hooks/use-toast';
 
@@ -58,17 +59,20 @@ export const useSotkanetMetrics = (area: string, location: string) => {
       console.log('Haetaan indikaattorit:', indicatorNumbers);
       
       try {
-        console.log('Aloitetaan Sotkanet API-kutsu...');
-        const data = await sotkanetService.getMultipleIndicators(indicatorNumbers);
+        console.log('Aloitetaan Sotkanet API-kutsu backendin kautta...');
+        const data = await sotkanetService.getMultipleIndicators(
+          indicatorNumbers, 
+          PSHVA_REGION_ID.toString()
+        );
         
-        console.log('Sotkanet vastaus saatu:', data);
+        console.log('Sotkanet vastaus saatu backendistä:', data);
 
         // Jos data on tyhjä tai virheellinen
         if (!data || data.length === 0) {
           console.log('Ei dataa Sotkanetista, käytetään fallback-dataa');
           toast({
             title: "Tietojen haku epäonnistui",
-            description: "Sotkanet API ei palauttanut dataa. Käytetään simuloitua dataa.",
+            description: "Sotkanet API ei palauttanut dataa backendin kautta. Käytetään simuloitua dataa.",
             variant: "destructive",
           });
           return getFallbackMetrics(area);
@@ -122,7 +126,7 @@ export const useSotkanetMetrics = (area: string, location: string) => {
         if (hasRealData) {
           toast({
             title: "Tiedot päivitetty",
-            description: "Sotkanet data haettu onnistuneesti.",
+            description: "Sotkanet data haettu onnistuneesti backendin kautta.",
           });
         }
         
@@ -131,14 +135,14 @@ export const useSotkanetMetrics = (area: string, location: string) => {
         console.error('Virhe Sotkanet datan käsittelyssä:', error);
         toast({
           title: "Virhe tietojen haussa",
-          description: `Sotkanet API-virhe: ${error instanceof Error ? error.message : 'Tuntematon virhe'}. Käytetään simuloitua dataa.`,
+          description: `Sotkanet API-virhe backendin kautta: ${error instanceof Error ? error.message : 'Tuntematon virhe'}. Käytetään simuloitua dataa.`,
           variant: "destructive",
         });
         return getFallbackMetrics(area);
       }
     },
     staleTime: 5 * 60 * 1000, // 5 minuuttia
-    retry: 1, // Vähennetään retry-määrää
+    retry: 1,
     retryDelay: 2000,
     refetchOnWindowFocus: false,
   });
