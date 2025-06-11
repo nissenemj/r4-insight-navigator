@@ -100,7 +100,7 @@ class SotkanetService {
   ): Promise<SotkanetDataPoint[]> {
     try {
       const currentYear = year || new Date().getFullYear() - 1;
-      // Dokumentaation mukaan: pilkulla erotettu merkkijono
+      // KORJAUS: Muutetaan array pilkulla erotetuksi merkkijonoksi
       const regionsParam = regions.join(',');
       
       // Dokumentaation mukainen parametrimuoto
@@ -138,7 +138,7 @@ class SotkanetService {
   ): Promise<SotkanetDataPoint[]> {
     try {
       const currentYear = new Date().getFullYear() - 1;
-      // Dokumentaation mukaan: pilkulla erotettu merkkijono
+      // KORJAUS: Muutetaan array pilkulla erotetuksi merkkijonoksi
       const indicatorsParam = indicators.join(',');
       
       const endpoint = `/data?indicator=${indicatorsParam}&year=${currentYear}&regions=${region}&genders=total`;

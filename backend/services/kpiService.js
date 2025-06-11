@@ -91,7 +91,7 @@ async function fetchSotkanetData(indicatorId, year) {
       params: {
         indicator: indicatorId,
         year: year,
-        regions: PSHVA_CODE,
+        regions: PSHVA_CODE, // KORJAUS: String eikä array
         genders: 'total'
       },
       timeout: 5000
