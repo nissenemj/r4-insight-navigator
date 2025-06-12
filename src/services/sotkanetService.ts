@@ -1,3 +1,4 @@
+
 import { SotkanetDataPoint, SotkanetRegion, SotkanetIndicator } from '@/types/sotkanet';
 
 // Backend API URL - Korjattu käyttämään paljastettua URL:ää
@@ -33,29 +34,76 @@ export const INDICATORS = {
 class SotkanetService {
   private async fetchData<T>(endpoint: string): Promise<T> {
     const url = `${BACKEND_BASE_URL}${endpoint}`;
-    console.log(`Haetaan backend-palvelimelta: ${url}`);
+    console.log(`🔍 Attempting to fetch from backend: ${url}`);
+    console.log(`🕐 Timestamp: ${new Date().toISOString()}`);
     
     try {
+      console.log('🚀 Starting fetch request...');
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
+      
       const response = await fetch(url, {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
-          'Content-Type': 'application/json'
-        }
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache'
+        },
+        signal: controller.signal
       });
       
-      console.log(`Response status: ${response.status}`);
+      clearTimeout(timeoutId);
+      
+      console.log(`📡 Response received:`);
+      console.log(`  Status: ${response.status} ${response.statusText}`);
+      console.log(`  Headers:`, Object.fromEntries(response.headers.entries()));
+      console.log(`  URL: ${response.url}`);
+      console.log(`  OK: ${response.ok}`);
       
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorText = await response.text();
+        console.error(`❌ HTTP error response body:`, errorText);
+        throw new Error(`Backend HTTP error! status: ${response.status} ${response.statusText}. Response: ${errorText}`);
       }
       
       const data = await response.json();
-      console.log('Data haettu onnistuneesti backend-palvelimelta:', data);
+      console.log('✅ Data parsed successfully from backend:', data);
+      console.log(`📊 Data type: ${typeof data}, Length: ${Array.isArray(data) ? data.length : 'N/A'}`);
       return data;
       
     } catch (error) {
-      console.error('Backend API error:', error);
+      console.error('🚨 Backend API Error Details:');
+      console.error('  Error type:', error.constructor.name);
+      console.error('  Error message:', error.message);
+      console.error('  Full error:', error);
+      
+      if (error.name === 'AbortError') {
+        console.error('  ⏰ Request timed out after 30 seconds');
+        throw new Error('Backend request timed out - server may be down');
+      }
+      
+      if (error.message?.includes('502')) {
+        console.error('  🔌 502 Bad Gateway - Backend server is not responding');
+        throw new Error('Backend server is not responding (502 Bad Gateway)');
+      }
+      
+      if (error.message?.includes('Failed to fetch')) {
+        console.error('  🌐 Network error - Cannot reach backend server');
+        throw new Error('Cannot reach backend server - check if it\'s running');
+      }
+      
+      throw error;
+    }
+  }
+
+  async healthCheck(): Promise<any> {
+    console.log('🏥 Starting backend health check...');
+    try {
+      const health = await this.fetchData<any>('/health');
+      console.log('✅ Backend health check successful:', health);
+      return health;
+    } catch (error) {
+      console.error('❌ Backend health check failed:', error);
       throw error;
     }
   }
