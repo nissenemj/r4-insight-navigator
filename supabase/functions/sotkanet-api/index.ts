@@ -33,7 +33,8 @@ serve(async (req) => {
           status: 'OK',
           timestamp: new Date().toISOString(),
           service: 'Sotkanet API Integration',
-          version: '1.0.0'
+          version: '1.1.0',
+          realtime_enabled: true
         }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -41,11 +42,116 @@ serve(async (req) => {
       );
     }
 
+    // Sync all indicators data - new endpoint for bulk sync
+    if (path.endsWith('/sync')) {
+      const region = params.get('region') || '974';
+      const year = params.get('year') || '2024';
+      
+      console.log(`🔄 Starting data sync for region ${region}, year ${year}`);
+      
+      // Get all indicators
+      const { data: indicators } = await supabase
+        .from('indicators')
+        .select('*');
+      
+      if (!indicators) {
+        throw new Error('No indicators found');
+      }
+
+      let syncedCount = 0;
+      const results = [];
+
+      for (const indicator of indicators) {
+        try {
+          const sotkanetUrl = `https://sotkanet.fi/rest/1.1/json?indicator=${indicator.sotkanet_id}&years=${year}&genders=total&region=${region}`;
+          console.log(`📊 Syncing indicator ${indicator.sotkanet_id}: ${indicator.title}`);
+          
+          const response = await fetch(sotkanetUrl);
+          
+          if (response.ok) {
+            const data = await response.json();
+            
+            if (Array.isArray(data) && data.length > 0) {
+              // Store/update data in health_metrics table
+              const metricsData = data.map(item => ({
+                indicator_id: indicator.id,
+                region_code: region,
+                year: parseInt(year),
+                value: item.value,
+                absolute_value: item.absoluteValue || item.value,
+                gender: item.gender || 'total',
+                data_source: 'sotkanet',
+                last_updated: new Date().toISOString()
+              }));
+
+              const { error } = await supabase
+                .from('health_metrics')
+                .upsert(metricsData, { 
+                  onConflict: 'indicator_id,region_code,year,gender',
+                  ignoreDuplicates: false 
+                });
+
+              if (!error) {
+                syncedCount++;
+                results.push({
+                  indicator_id: indicator.sotkanet_id,
+                  title: indicator.title,
+                  status: 'synced',
+                  records: metricsData.length
+                });
+              } else {
+                console.error(`Error storing data for indicator ${indicator.sotkanet_id}:`, error);
+                results.push({
+                  indicator_id: indicator.sotkanet_id,
+                  title: indicator.title,
+                  status: 'error',
+                  error: error.message
+                });
+              }
+            } else {
+              results.push({
+                indicator_id: indicator.sotkanet_id,
+                title: indicator.title,
+                status: 'no_data'
+              });
+            }
+          } else {
+            console.error(`Failed to fetch indicator ${indicator.sotkanet_id}: ${response.status}`);
+            results.push({
+              indicator_id: indicator.sotkanet_id,
+              title: indicator.title,
+              status: 'fetch_error',
+              http_status: response.status
+            });
+          }
+        } catch (error) {
+          console.error(`Error processing indicator ${indicator.sotkanet_id}:`, error);
+          results.push({
+            indicator_id: indicator.sotkanet_id,
+            title: indicator.title,
+            status: 'error',
+            error: error.message
+          });
+        }
+      }
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          synced_count: syncedCount,
+          total_indicators: indicators.length,
+          results: results,
+          timestamp: new Date().toISOString()
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Get cached data or fetch from THL Sotkanet
     if (path.includes('/data/')) {
       const indicatorId = path.split('/data/')[1].split('?')[0];
       const region = params.get('region') || '974';
-      const year = params.get('year') || '2023';
+      const year = params.get('year') || '2024';
       
       console.log(`Fetching data for indicator ${indicatorId}, region ${region}, year ${year}`);
       
@@ -142,7 +248,7 @@ serve(async (req) => {
     if (path.includes('/multiple')) {
       const indicators = params.get('indicators')?.split(',') || [];
       const region = params.get('region') || '974';
-      const year = params.get('year') || '2023';
+      const year = params.get('year') || '2024';
       
       console.log(`Fetching multiple indicators: ${indicators.join(', ')}`);
       

@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
 export interface HealthMetric {
@@ -61,6 +60,34 @@ export interface TrendDataPoint {
 }
 
 class SupabaseService {
+  // Trigger data sync via Edge Function
+  async syncAllData(regionCode: string = '974', year?: number): Promise<any> {
+    try {
+      console.log(`🔄 Syncing all health data for region: ${regionCode}`);
+      
+      const currentYear = year || new Date().getFullYear();
+      
+      const { data, error } = await supabase.functions.invoke('sotkanet-api', {
+        body: {
+          path: '/sync',
+          region: regionCode,
+          year: currentYear.toString()
+        }
+      });
+
+      if (error) {
+        console.error('Sync error:', error);
+        throw error;
+      }
+
+      console.log('✅ Data sync completed:', data);
+      return data;
+    } catch (error) {
+      console.error('Error in syncAllData:', error);
+      throw error;
+    }
+  }
+
   // Get health metrics with indicators and targets
   async getHealthMetrics(areaCategory: string, regionCode: string = '974'): Promise<Record<string, MetricData>> {
     try {

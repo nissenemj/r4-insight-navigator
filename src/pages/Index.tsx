@@ -4,9 +4,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { LocationSelector } from '@/components/LocationSelector';
 import { SupabaseHealthcareMetrics } from '@/components/SupabaseHealthcareMetrics';
 import { SupabaseTrendChart } from '@/components/SupabaseTrendChart';
+import { DataSyncPanel } from '@/components/DataSyncPanel';
 import { AlertPanel } from '@/components/AlertPanel';
 import { Badge } from '@/components/ui/badge';
-import { Database, Server } from 'lucide-react';
+import { Database, Server, Zap } from 'lucide-react';
 
 const Index = () => {
   const [selectedLocation, setSelectedLocation] = useState('kuopio');
@@ -30,17 +31,23 @@ const Index = () => {
                 <h1 className="text-3xl font-bold text-gray-900">
                   R4 Insight Navigator
                 </h1>
-                <Badge variant="secondary" className="flex items-center gap-1">
-                  <Database className="h-3 w-3" />
-                  Supabase
-                </Badge>
+                <div className="flex items-center gap-2">
+                  <Badge variant="secondary" className="flex items-center gap-1">
+                    <Database className="h-3 w-3" />
+                    Supabase
+                  </Badge>
+                  <Badge variant="outline" className="flex items-center gap-1">
+                    <Zap className="h-3 w-3" />
+                    Real-time
+                  </Badge>
+                </div>
               </div>
               <p className="text-gray-600">
                 Pohjois-Savon hyvinvointialueen terveydenhuollon tunnusluvut ja analytiikka
               </p>
               <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
                 <Server className="h-4 w-4" />
-                Backend: Supabase + THL Sotkanet API integraatio
+                Backend: Supabase + THL Sotkanet API integraatio + Reaaliaikainen synkronointi
               </div>
             </div>
             <LocationSelector 
@@ -49,6 +56,9 @@ const Index = () => {
             />
           </div>
         </div>
+
+        {/* Data Sync Panel */}
+        <DataSyncPanel area={selectedArea} location={selectedLocation} />
 
         {/* Area Selection */}
         <Tabs value={selectedArea} onValueChange={setSelectedArea} className="w-full">
