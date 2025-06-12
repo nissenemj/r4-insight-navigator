@@ -1,12 +1,12 @@
 
 import { useQuery } from '@tanstack/react-query';
-import { supabaseService } from '@/services/supabaseService';
+import { supabaseService, type MetricData, type TrendDataPoint } from '@/services/supabaseService';
 import { useToast } from '@/hooks/use-toast';
 
 export const useSupabaseMetrics = (area: string, location: string) => {
   const { toast } = useToast();
 
-  return useQuery({
+  return useQuery<Record<string, MetricData>>({
     queryKey: ['supabase-metrics', area, location],
     queryFn: async () => {
       console.log(`📊 Fetching metrics from Supabase for area: ${area}, location: ${location}`);
@@ -48,7 +48,7 @@ export const useSupabaseMetrics = (area: string, location: string) => {
 };
 
 export const useSupabaseTrends = (area: string, location: string) => {
-  return useQuery({
+  return useQuery<TrendDataPoint[]>({
     queryKey: ['supabase-trends', area, location],
     queryFn: async () => {
       console.log(`📈 Fetching trends from Supabase for area: ${area}, location: ${location}`);

@@ -44,9 +44,25 @@ export interface TargetValue {
   created_at: string;
 }
 
+export interface MetricData {
+  value: number;
+  target: number;
+  trend: 'up' | 'down';
+  unit: string;
+  name: string;
+  lastUpdated: string;
+}
+
+export interface TrendDataPoint {
+  month: string;
+  current: number;
+  target: number;
+  costs: number;
+}
+
 class SupabaseService {
   // Get health metrics with indicators and targets
-  async getHealthMetrics(areaCategory: string, regionCode: string = '974') {
+  async getHealthMetrics(areaCategory: string, regionCode: string = '974'): Promise<Record<string, MetricData>> {
     try {
       console.log(`🔍 Fetching health metrics for area: ${areaCategory}, region: ${regionCode}`);
       
@@ -65,7 +81,7 @@ class SupabaseService {
         return {};
       }
 
-      const results: any = {};
+      const results: Record<string, MetricData> = {};
       const currentYear = new Date().getFullYear();
 
       for (const indicator of indicators) {
@@ -154,7 +170,7 @@ class SupabaseService {
   }
 
   // Get trend data for charts
-  async getTrendData(areaCategory: string, regionCode: string = '974') {
+  async getTrendData(areaCategory: string, regionCode: string = '974'): Promise<TrendDataPoint[]> {
     try {
       const { data: indicators, error } = await supabase
         .from('indicators')
@@ -209,7 +225,7 @@ class SupabaseService {
     return value >= target ? 'up' : 'down';
   }
 
-  private generateMonthlyTrendData(metrics: any[], indicator: Indicator) {
+  private generateMonthlyTrendData(metrics: any[], indicator: Indicator): TrendDataPoint[] {
     const months = ['Tam', 'Hel', 'Maa', 'Huh', 'Tou', 'Kes', 'Hei', 'Elo', 'Syy', 'Lok', 'Mar', 'Jou'];
     const latestMetric = metrics[metrics.length - 1];
     const baseValue = latestMetric?.absolute_value || latestMetric?.value || 1000;
@@ -227,7 +243,7 @@ class SupabaseService {
     });
   }
 
-  private getFallbackTrendData() {
+  private getFallbackTrendData(): TrendDataPoint[] {
     const months = ['Tam', 'Hel', 'Maa', 'Huh', 'Tou', 'Kes', 'Hei', 'Elo', 'Syy', 'Lok', 'Mar', 'Jou'];
     const baseValue = 1000;
 
