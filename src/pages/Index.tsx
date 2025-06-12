@@ -2,10 +2,11 @@
 import { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { LocationSelector } from '@/components/LocationSelector';
-import { HealthcareMetrics } from '@/components/HealthcareMetrics';
-import { TrendChart } from '@/components/TrendChart';
+import { SupabaseHealthcareMetrics } from '@/components/SupabaseHealthcareMetrics';
+import { SupabaseTrendChart } from '@/components/SupabaseTrendChart';
 import { AlertPanel } from '@/components/AlertPanel';
-import { BackendDebug } from '@/components/BackendDebug';
+import { Badge } from '@/components/ui/badge';
+import { Database, Server } from 'lucide-react';
 
 const Index = () => {
   const [selectedLocation, setSelectedLocation] = useState('kuopio');
@@ -25,12 +26,22 @@ const Index = () => {
         <div className="bg-white p-6 rounded-lg shadow-sm border">
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">
-                R4 Insight Navigator
-              </h1>
-              <p className="text-gray-600 mt-1">
+              <div className="flex items-center gap-3 mb-2">
+                <h1 className="text-3xl font-bold text-gray-900">
+                  R4 Insight Navigator
+                </h1>
+                <Badge variant="secondary" className="flex items-center gap-1">
+                  <Database className="h-3 w-3" />
+                  Supabase
+                </Badge>
+              </div>
+              <p className="text-gray-600">
                 Pohjois-Savon hyvinvointialueen terveydenhuollon tunnusluvut ja analytiikka
               </p>
+              <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
+                <Server className="h-4 w-4" />
+                Backend: Supabase + THL Sotkanet API integraatio
+              </div>
             </div>
             <LocationSelector 
               selectedLocation={selectedLocation}
@@ -38,9 +49,6 @@ const Index = () => {
             />
           </div>
         </div>
-
-        {/* Backend Debug Panel - Temporary for debugging */}
-        <BackendDebug />
 
         {/* Area Selection */}
         <Tabs value={selectedArea} onValueChange={setSelectedArea} className="w-full">
@@ -54,8 +62,8 @@ const Index = () => {
 
           {areas.map((area) => (
             <TabsContent key={area.id} value={area.id} className="space-y-6">
-              <HealthcareMetrics area={area.id} location={selectedLocation} />
-              <TrendChart area={area.id} location={selectedLocation} />
+              <SupabaseHealthcareMetrics area={area.id} location={selectedLocation} />
+              <SupabaseTrendChart area={area.id} location={selectedLocation} />
             </TabsContent>
           ))}
         </Tabs>

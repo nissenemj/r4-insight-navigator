@@ -9,7 +9,175 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      health_metrics: {
+        Row: {
+          absolute_value: number | null
+          created_at: string
+          data_source: string | null
+          gender: string | null
+          id: string
+          indicator_id: string
+          last_updated: string
+          region_code: string
+          value: number | null
+          year: number
+        }
+        Insert: {
+          absolute_value?: number | null
+          created_at?: string
+          data_source?: string | null
+          gender?: string | null
+          id?: string
+          indicator_id: string
+          last_updated?: string
+          region_code: string
+          value?: number | null
+          year: number
+        }
+        Update: {
+          absolute_value?: number | null
+          created_at?: string
+          data_source?: string | null
+          gender?: string | null
+          id?: string
+          indicator_id?: string
+          last_updated?: string
+          region_code?: string
+          value?: number | null
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "health_metrics_indicator_id_fkey"
+            columns: ["indicator_id"]
+            isOneToOne: false
+            referencedRelation: "indicators"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      indicators: {
+        Row: {
+          area_category: string | null
+          created_at: string
+          description: string | null
+          id: string
+          organization: string | null
+          sotkanet_id: number
+          title: string
+          unit: string | null
+          updated_at: string
+        }
+        Insert: {
+          area_category?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          organization?: string | null
+          sotkanet_id: number
+          title: string
+          unit?: string | null
+          updated_at?: string
+        }
+        Update: {
+          area_category?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          organization?: string | null
+          sotkanet_id?: number
+          title?: string
+          unit?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      regions: {
+        Row: {
+          category: string | null
+          code: string
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string | null
+          code: string
+          created_at?: string
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string | null
+          code?: string
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      sotkanet_cache: {
+        Row: {
+          cache_key: string
+          created_at: string
+          data: Json
+          expires_at: string
+          id: string
+        }
+        Insert: {
+          cache_key: string
+          created_at?: string
+          data: Json
+          expires_at: string
+          id?: string
+        }
+        Update: {
+          cache_key?: string
+          created_at?: string
+          data?: Json
+          expires_at?: string
+          id?: string
+        }
+        Relationships: []
+      }
+      target_values: {
+        Row: {
+          created_at: string
+          id: string
+          indicator_id: string
+          region_code: string
+          target_value: number
+          target_year: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          indicator_id: string
+          region_code: string
+          target_value: number
+          target_year: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          indicator_id?: string
+          region_code?: string
+          target_value?: number
+          target_year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "target_values_indicator_id_fkey"
+            columns: ["indicator_id"]
+            isOneToOne: false
+            referencedRelation: "indicators"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
