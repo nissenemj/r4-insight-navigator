@@ -160,7 +160,7 @@ router.get('/data/:indicator', async (req, res) => {
     const params = {
       indicator: indicator,
       years: year, // Note: 'years' not 'year'
-      regions: region,
+      region: region,
       genders: gender
     };
     
@@ -232,7 +232,7 @@ router.get('/multiple', async (req, res) => {
     const params = {
       indicator: indicators, // Can be comma-separated list
       years: year,
-      regions: region,
+      region: region,
       genders: gender
     };
     
@@ -317,7 +317,7 @@ router.get('/area/:area', async (req, res) => {
     const params = {
       indicator: indicatorsParam,
       years: year,
-      regions: region,
+      region: region,
       genders: 'total'
     };
     
@@ -370,7 +370,7 @@ router.get('/test/:indicator', async (req, res) => {
           const params = {
             indicator: indicator,
             years: year,
-            regions: region,
+            region: region,
             genders: 'total'
           };
           
