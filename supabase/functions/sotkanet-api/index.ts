@@ -33,7 +33,7 @@ serve(async (req) => {
           status: 'OK',
           timestamp: new Date().toISOString(),
           service: 'Sotkanet API Integration',
-          version: '1.1.0',
+          version: '1.1.1',
           realtime_enabled: true
         }),
         { 
@@ -84,30 +84,47 @@ serve(async (req) => {
                 last_updated: new Date().toISOString()
               }));
 
-              const { error } = await supabase
-                .from('health_metrics')
-                .upsert(metricsData, { 
-                  onConflict: 'indicator_id,region_code,year,gender',
-                  ignoreDuplicates: false 
-                });
+                const { error } = await supabase
+            .from('health_metrics')
+            .upsert(metricsData, {
+              onConflict: 'indicator_id,region_code,year,gender',
+              ignoreDuplicates: false
+            });
+          if (!error) {
+            syncedCount++;
+            results.push({
+              indicator_id: indicator.sotkanet_id,
+              title: indicator.title,
+              status: 'synced',
+              records: metricsData.length
+            });
+          } else {
+            console.error(`Error storing data for indicator ${indicator.sotkanet_id}:`, error);
 
-              if (!error) {
-                syncedCount++;
-                results.push({
-                  indicator_id: indicator.sotkanet_id,
-                  title: indicator.title,
-                  status: 'synced',
-                  records: metricsData.length
-                });
-              } else {
-                console.error(`Error storing data for indicator ${indicator.sotkanet_id}:`, error);
-                results.push({
-                  indicator_id: indicator.sotkanet_id,
-                  title: indicator.title,
-                  status: 'error',
-                  error: error.message
-                });
-              }
+            // Fallback to simple insert if upsert fails due to missing constraint
+            const { error: insertError } = await supabase
+              .from('health_metrics')
+              .insert(metricsData);
+
+            if (!insertError) {
+              syncedCount++;
+              results.push({
+                indicator_id: indicator.sotkanet_id,
+                title: indicator.title,
+                status: 'inserted',
+                records: metricsData.length
+              });
+            } else {
+              console.error(`Insert fallback failed for indicator ${indicator.sotkanet_id}:`, insertError);
+              results.push({
+                indicator_id: indicator.sotkanet_id,
+                title: indicator.title,
+                status: 'error',
+                error: insertError.message
+              });
+            }
+          }
+             
             } else {
               results.push({
                 indicator_id: indicator.sotkanet_id,
@@ -215,12 +232,18 @@ serve(async (req) => {
               data_source: 'sotkanet'
             }));
 
-            await supabase
+              const { error } = await supabase
               .from('health_metrics')
-              .upsert(metricsData, { 
+              .upsert(metricsData, {
                 onConflict: 'indicator_id,region_code,year,gender',
                 ignoreDuplicates: false 
               });
+             if (error) {
+              console.error('Upsert failed, attempting insert fallback:', error);
+              await supabase
+                .from('health_metrics')
+                .insert(metricsData);
+            }
           }
         }
 
