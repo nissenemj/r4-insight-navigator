@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -26,26 +25,22 @@ serve(async (req) => {
     console.log(`🔍 Sotkanet API request: ${req.method} ${path}`);
     console.log('Query params:', Object.fromEntries(params.entries()));
 
-    // Health check endpoint
-    if (path.endsWith('/health')) {
-      return new Response(
-        JSON.stringify({
-          status: 'OK',
-          timestamp: new Date().toISOString(),
-          service: 'Sotkanet API Integration',
-          version: '1.2.0',
-          realtime_enabled: true
-        }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      );
-    }
-
-    // Sync all indicators data - improved with better error handling and fallback data
-    if (path.endsWith('/sync')) {
-      const region = params.get('region') || '974';
-      const year = params.get('year') || '2023';
+    // Handle POST requests for sync
+    if (req.method === 'POST') {
+      let region = '974';
+      let year = '2024';
+      
+      // Try to get parameters from body
+      try {
+        const body = await req.json();
+        console.log('Request body:', body);
+        region = body.region || region;
+        year = body.year || year;
+      } catch (e) {
+        // If no JSON body, use query params
+        region = params.get('region') || region;
+        year = params.get('year') || year;
+      }
       
       console.log(`🔄 Starting data sync for region ${region}, year ${year}`);
       
@@ -216,6 +211,22 @@ serve(async (req) => {
           timestamp: new Date().toISOString()
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Health check endpoint
+    if (path.endsWith('/health')) {
+      return new Response(
+        JSON.stringify({
+          status: 'OK',
+          timestamp: new Date().toISOString(),
+          service: 'Sotkanet API Integration',
+          version: '1.2.0',
+          realtime_enabled: true
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
       );
     }
 

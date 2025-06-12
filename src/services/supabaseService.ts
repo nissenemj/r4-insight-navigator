@@ -69,7 +69,6 @@ class SupabaseService {
       
       const { data, error } = await supabase.functions.invoke('sotkanet-api', {
         body: {
-          path: '/sync',
           region: regionCode,
           year: currentYear.toString()
         }
