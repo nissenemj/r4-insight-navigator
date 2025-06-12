@@ -1,8 +1,8 @@
 
 import { SotkanetDataPoint, SotkanetRegion, SotkanetIndicator } from '@/types/sotkanet';
 
-// Backend API URL - Korjattu käyttämään paljastettua URL:ää
-const BACKEND_BASE_URL = 'https://3001-ilh4mzv0cqypycdhs9yan-02027ef7.manusvm.computer/api/sotkanet';
+// Backend API URL - Use Supabase Edge Function
+const BACKEND_BASE_URL = 'https://tixdqgipsacxnfocsuxm.supabase.co/functions/v1/sotkanet-api';
 
 // Pohjois-Savon hyvinvointialueen ID
 export const PSHVA_REGION_ID = 974;
