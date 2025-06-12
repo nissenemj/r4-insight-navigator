@@ -89,7 +89,7 @@ export const BackendDebug = () => {
         )}
         
         <div className="text-xs text-muted-foreground">
-          <p>Backend URL: https://3001-ilh4mzv0cqypycdhs9yan-02027ef7.manusvm.computer/api/sotkanet</p>
+          <p>Backend URL: https://tixdqgipsacxnfocsuxm.supabase.co/functions/v1/sotkanet-api</p>
           <p>Check browser console for detailed logs</p>
         </div>
       </CardContent>
