@@ -4,6 +4,7 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { TrendingUp, TrendingDown, Clock, Loader2, Database } from 'lucide-react';
 import { useSupabaseMetrics } from '@/hooks/useSupabaseData';
+import { MetricData } from '@/services/supabaseService';
 
 interface SupabaseHealthcareMetricsProps {
   area: string;
@@ -102,7 +103,7 @@ export const SupabaseHealthcareMetrics = ({ area, location }: SupabaseHealthcare
   }
 
   const getMetricCards = () => {
-    return Object.entries(metrics).map(([key, data]) => {
+    return Object.entries(metrics).map(([key, data]: [string, MetricData]) => {
       const percentage = Math.min((data.value / data.target) * 100, 100);
       const isOnTarget = data.value >= data.target;
       
