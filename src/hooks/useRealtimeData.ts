@@ -77,7 +77,7 @@ export const useRealtimeData = (area: string, location: string): RealtimeDataHoo
       
       toast({
         title: "Tietojen synkronointi onnistui",
-        description: `Synkronoitiin ${data.synced_count}/${data.total_indicators} indikaattoria.`,
+        description: `Synkronoitiin ${data?.synced_count || 0}/${data?.total_indicators || 0} indikaattoria.`,
       });
       
       setLastUpdate(new Date().toISOString());
