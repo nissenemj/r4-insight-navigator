@@ -61,17 +61,19 @@ export const useRealtimeData = (area: string, location: string): RealtimeDataHoo
       const regionCode = location === 'all' ? '974' : location;
       const currentYear = new Date().getFullYear();
       
-      const { data, error } = await supabase.functions.invoke('sotkanet-api', {
-        body: {
-          path: '/sync',
-          region: regionCode,
-          year: currentYear.toString()
-        }
+      const response = await fetch(`${supabase.supabaseUrl}/functions/v1/sotkanet-api/sync?region=${regionCode}&year=${currentYear}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${supabase.supabaseKey}`,
+          'Content-Type': 'application/json',
+        },
       });
 
-      if (error) {
-        throw error;
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
+
+      const data = await response.json();
 
       console.log('✅ Data sync completed:', data);
       
