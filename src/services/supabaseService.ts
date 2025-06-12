@@ -53,10 +53,12 @@ export interface MetricData {
 }
 
 export interface TrendDataPoint {
-  month: string;
+  year: number;
+  month?: string;
   current: number;
   target: number;
   costs: number;
+  dataType: 'yearly' | 'monthly';
 }
 
 class SupabaseService {
@@ -209,40 +211,100 @@ class SupabaseService {
     }
   }
 
-  // Get trend data for charts
+  // Get trend data - check what's available and use real data
   async getTrendData(areaCategory: string, regionCode: string = '974'): Promise<TrendDataPoint[]> {
     try {
+      console.log(`📈 Fetching trend data for area: ${areaCategory}, region: ${regionCode}`);
+      
       const { data: indicators, error } = await supabase
         .from('indicators')
         .select('*')
-        .eq('area_category', areaCategory)
-        .limit(1);
+        .eq('area_category', areaCategory);
 
       if (error || !indicators || indicators.length === 0) {
-        return this.getFallbackTrendData();
+        console.log('No indicators found, using fallback yearly data');
+        return this.getFallbackYearlyTrendData();
       }
 
       const indicator = indicators[0];
-      const currentYear = new Date().getFullYear();
+      console.log(`Using indicator ${indicator.title} for trend analysis`);
       
-      const { data: metrics } = await supabase
+      // Fetch multiple years of data
+      const currentYear = new Date().getFullYear();
+      const yearsToFetch = [currentYear - 4, currentYear - 3, currentYear - 2, currentYear - 1, currentYear];
+      
+      const { data: metrics, error: metricsError } = await supabase
         .from('health_metrics')
         .select('*')
         .eq('indicator_id', indicator.id)
         .eq('region_code', regionCode)
-        .gte('year', currentYear - 2)
+        .in('year', yearsToFetch)
         .order('year', { ascending: true });
 
-      if (!metrics || metrics.length === 0) {
-        return this.getFallbackTrendData();
+      if (metricsError) {
+        console.error('Error fetching metrics:', metricsError);
+        return this.getFallbackYearlyTrendData();
       }
 
-      // Generate monthly data from yearly metrics
-      return this.generateMonthlyTrendData(metrics, indicator);
+      console.log(`Found ${metrics?.length || 0} yearly data points`);
+
+      if (!metrics || metrics.length === 0) {
+        console.log('No yearly metrics found, using fallback data');
+        return this.getFallbackYearlyTrendData();
+      }
+
+      // Check if we have enough data for a real trend
+      if (metrics.length >= 3) {
+        console.log('✅ Using real yearly data for trends');
+        return this.processYearlyTrendData(metrics, indicator);
+      } else {
+        console.log('⚠️ Not enough yearly data, using fallback');
+        return this.getFallbackYearlyTrendData();
+      }
     } catch (error) {
       console.error('Error getting trend data:', error);
-      return this.getFallbackTrendData();
+      return this.getFallbackYearlyTrendData();
     }
+  }
+
+  // Process real yearly data into trend format
+  private processYearlyTrendData(metrics: any[], indicator: Indicator): TrendDataPoint[] {
+    console.log('Processing real yearly trend data:', metrics);
+    
+    return metrics.map(metric => {
+      const value = metric.absolute_value || metric.value;
+      const targetValue = this.getDefaultTarget(indicator.sotkanet_id);
+      
+      return {
+        year: metric.year,
+        current: value,
+        target: targetValue,
+        costs: Math.round(value * 150), // Estimated cost calculation
+        dataType: 'yearly' as const
+      };
+    });
+  }
+
+  // Fallback yearly trend data when no real data available
+  private getFallbackYearlyTrendData(): TrendDataPoint[] {
+    const currentYear = new Date().getFullYear();
+    const years = [currentYear - 4, currentYear - 3, currentYear - 2, currentYear - 1, currentYear];
+    const baseValue = 1000;
+
+    console.log('📋 Creating fallback yearly trend data');
+    
+    return years.map((year, index) => {
+      const yearlyVariation = (Math.random() - 0.5) * (baseValue * 0.2);
+      const trend = baseValue + (index * 50) + yearlyVariation; // Slight upward trend
+      
+      return {
+        year,
+        current: Math.round(trend),
+        target: baseValue,
+        costs: Math.round(trend * 150),
+        dataType: 'yearly' as const
+      };
+    });
   }
 
   // Helper methods
@@ -317,41 +379,6 @@ class SupabaseService {
 
   private calculateTrend(value: number, target: number): 'up' | 'down' {
     return value >= target ? 'up' : 'down';
-  }
-
-  private generateMonthlyTrendData(metrics: any[], indicator: Indicator): TrendDataPoint[] {
-    const months = ['Tam', 'Hel', 'Maa', 'Huh', 'Tou', 'Kes', 'Hei', 'Elo', 'Syy', 'Lok', 'Mar', 'Jou'];
-    const latestMetric = metrics[metrics.length - 1];
-    const baseValue = latestMetric?.absolute_value || latestMetric?.value || 1000;
-
-    return months.map((month, index) => {
-      const seasonalVariation = Math.sin((index / 12) * 2 * Math.PI) * (baseValue * 0.1);
-      const noise = (Math.random() - 0.5) * (baseValue * 0.05);
-      
-      return {
-        month,
-        current: Math.round(baseValue + seasonalVariation + noise),
-        target: baseValue,
-        costs: Math.round((baseValue + seasonalVariation + noise) * 150),
-      };
-    });
-  }
-
-  private getFallbackTrendData(): TrendDataPoint[] {
-    const months = ['Tam', 'Hel', 'Maa', 'Huh', 'Tou', 'Kes', 'Hei', 'Elo', 'Syy', 'Lok', 'Mar', 'Jou'];
-    const baseValue = 1000;
-
-    return months.map((month, index) => {
-      const seasonalVariation = Math.sin((index / 12) * 2 * Math.PI) * (baseValue * 0.1);
-      const noise = (Math.random() - 0.5) * (baseValue * 0.05);
-      
-      return {
-        month,
-        current: Math.round(baseValue + seasonalVariation + noise),
-        target: baseValue,
-        costs: Math.round((baseValue + seasonalVariation + noise) * 150),
-      };
-    });
   }
 }
 

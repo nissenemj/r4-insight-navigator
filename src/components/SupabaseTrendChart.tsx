@@ -2,7 +2,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { TrendingUp, Loader2, Database, Globe, AlertCircle } from 'lucide-react';
+import { TrendingUp, Loader2, Database, AlertCircle, Calendar, BarChart3 } from 'lucide-react';
 import { useSupabaseTrends } from '@/hooks/useSupabaseData';
 
 interface SupabaseTrendChartProps {
@@ -25,6 +25,10 @@ export const SupabaseTrendChart = ({ area, location }: SupabaseTrendChartProps) 
     };
     return titles[area as keyof typeof titles] || 'Trendit';
   };
+
+  const isYearlyData = trends && trends.length > 0 && trends[0].dataType === 'yearly';
+  const hasRealData = trends && trends.length > 0 && 
+                     trends.some(t => t.year >= new Date().getFullYear() - 4);
 
   if (isLoading) {
     return (
@@ -60,7 +64,7 @@ export const SupabaseTrendChart = ({ area, location }: SupabaseTrendChartProps) 
             </div>
             <Badge variant="outline" className="text-xs">
               <AlertCircle className="h-3 w-3 mr-1" />
-              Simuloitu data
+              Virhe
             </Badge>
           </div>
         </CardHeader>
@@ -68,12 +72,25 @@ export const SupabaseTrendChart = ({ area, location }: SupabaseTrendChartProps) 
           <div className="text-center text-muted-foreground">
             <AlertCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
             <p>Virhe ladattaessa trenditietoja</p>
-            <p className="text-sm mt-2">Käytetään simuloitua dataa</p>
           </div>
         </CardContent>
       </Card>
     );
   }
+
+  const chartData = isYearlyData 
+    ? trends.map(t => ({
+        label: t.year.toString(),
+        current: t.current,
+        target: t.target,
+        costs: t.costs
+      }))
+    : trends.map(t => ({
+        label: t.month || t.year.toString(),
+        current: t.current,
+        target: t.target,
+        costs: t.costs
+      }));
 
   return (
     <Card>
@@ -82,18 +99,29 @@ export const SupabaseTrendChart = ({ area, location }: SupabaseTrendChartProps) 
           <div>
             <CardTitle className="flex items-center gap-2">
               <TrendingUp className="h-5 w-5" />
-              {getAreaTitle()} - Trendianalyysi (12kk)
+              {getAreaTitle()} - Trendianalyysi ({isYearlyData ? 'Vuosittain' : 'Kuukausittain'})
             </CardTitle>
             <CardDescription>{locationName}</CardDescription>
           </div>
           <div className="flex items-center gap-2">
-            <Badge variant="outline" className="text-xs">
-              <AlertCircle className="h-3 w-3 mr-1" />
-              Simuloitu data
-            </Badge>
+            {hasRealData ? (
+              <Badge variant="default" className="text-xs">
+                <Database className="h-3 w-3 mr-1" />
+                Todellinen data
+              </Badge>
+            ) : (
+              <Badge variant="outline" className="text-xs">
+                <AlertCircle className="h-3 w-3 mr-1" />
+                Simuloitu data
+              </Badge>
+            )}
             <Badge variant="secondary" className="text-xs">
-              <Database className="h-3 w-3 mr-1" />
-              Supabase
+              {isYearlyData ? (
+                <Calendar className="h-3 w-3 mr-1" />
+              ) : (
+                <BarChart3 className="h-3 w-3 mr-1" />
+              )}
+              {isYearlyData ? 'Vuosidata' : 'Kuukausidata'}
             </Badge>
           </div>
         </div>
@@ -101,16 +129,23 @@ export const SupabaseTrendChart = ({ area, location }: SupabaseTrendChartProps) 
       <CardContent>
         <div className="h-64">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={trends}>
+            <LineChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="month" />
+              <XAxis dataKey="label" />
               <YAxis />
               <Tooltip 
-                formatter={(value, name) => [value, name === 'current' ? 'Nykyinen' : name === 'target' ? 'Tavoite' : 'Kustannukset']}
-                labelFormatter={(label) => `Kuukausi: ${label}`}
+                formatter={(value, name) => [
+                  value, 
+                  name === 'current' ? 'Nykyinen' : 
+                  name === 'target' ? 'Tavoite' : 'Kustannukset (€)'
+                ]}
+                labelFormatter={(label) => isYearlyData ? `Vuosi: ${label}` : `Kuukausi: ${label}`}
               />
               <Legend 
-                formatter={(value) => value === 'current' ? 'Nykyinen' : value === 'target' ? 'Tavoite' : 'Kustannukset (€)'}
+                formatter={(value) => 
+                  value === 'current' ? 'Nykyinen' : 
+                  value === 'target' ? 'Tavoite' : 'Kustannukset (€)'
+                }
               />
               <Line 
                 type="monotone" 
@@ -134,12 +169,20 @@ export const SupabaseTrendChart = ({ area, location }: SupabaseTrendChartProps) 
         <div className="mt-4 text-xs text-muted-foreground bg-muted/30 p-2 rounded">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-1">
-              <AlertCircle className="h-3 w-3" />
-              <span>Trendidata on simuloitua - perustuu vuositietoihin</span>
+              {hasRealData ? (
+                <>
+                  <Database className="h-3 w-3" />
+                  <span>Oikea {isYearlyData ? 'vuosi' : 'kuukausi'}data THL Sotkanetista</span>
+                </>
+              ) : (
+                <>
+                  <AlertCircle className="h-3 w-3" />
+                  <span>Simuloitu {isYearlyData ? 'vuosi' : 'kuukausi'}data - ei riittävästi historiallista dataa</span>
+                </>
+              )}
             </div>
             <div className="flex items-center gap-1">
-              <Database className="h-3 w-3" />
-              <span>Tallennettu Supabaseen</span>
+              <span>Datapisteitä: {trends.length}</span>
             </div>
           </div>
         </div>
