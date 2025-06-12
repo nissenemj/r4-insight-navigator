@@ -1,8 +1,8 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, BarChart, Bar } from 'recharts';
-import { Loader2, Database } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { TrendingUp, Loader2, Database, Globe, AlertCircle } from 'lucide-react';
 import { useSupabaseTrends } from '@/hooks/useSupabaseData';
 
 interface SupabaseTrendChartProps {
@@ -11,139 +11,139 @@ interface SupabaseTrendChartProps {
 }
 
 export const SupabaseTrendChart = ({ area, location }: SupabaseTrendChartProps) => {
-  const { data, isLoading, error } = useSupabaseTrends(area, location);
+  const { data: trends, isLoading, error } = useSupabaseTrends(area, location);
 
-  const chartConfig = {
-    current: {
-      label: "Toteutunut",
-      color: "hsl(var(--primary))",
-    },
-    target: {
-      label: "Tavoite",
-      color: "hsl(var(--muted-foreground))",
-    },
-    costs: {
-      label: "Kustannukset €",
-      color: "hsl(var(--destructive))",
-    },
-  };
+  const locationName = location === 'all' ? 'Kaikki toimipisteet' : 
+                      location.charAt(0).toUpperCase() + location.slice(1);
 
-  const getChartTitle = () => {
+  const getAreaTitle = () => {
     const titles = {
-      avoterveydenhuolto: 'Käyntimäärät ja kustannukset (Supabase)',
-      leikkaustoiminta: 'Leikkausmäärät ja kustannukset (Supabase)',
-      paivystys: 'Päivystyskäynnit ja kustannukset (Supabase)',
-      tutkimus: 'Tutkimushankkeet ja rahoitus (Supabase)'
+      avoterveydenhuolto: 'Avoterveydenhuolto',
+      leikkaustoiminta: 'Leikkaustoiminta', 
+      paivystys: 'Päivystys',
+      tutkimus: 'Tutkimus & Opetus'
     };
-    return titles[area as keyof typeof titles] || 'Trendianalyysi (Supabase)';
+    return titles[area as keyof typeof titles] || 'Trendit';
   };
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {[1, 2].map((i) => (
-          <Card key={i} className="animate-pulse">
-            <CardHeader>
-              <div className="h-6 bg-gray-200 rounded w-3/4"></div>
-              <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-center h-[300px]">
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <TrendingUp className="h-5 w-5" />
+            {getAreaTitle()} - Trendianalyysi
+          </CardTitle>
+          <CardDescription>{locationName}</CardDescription>
+        </CardHeader>
+        <CardContent className="flex items-center justify-center h-64">
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Ladataan trenditietoja...
+          </div>
+        </CardContent>
+      </Card>
     );
   }
 
-  if (error || !data) {
+  if (error || !trends) {
     return (
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <Card>
-          <CardHeader>
-            <CardTitle>{getChartTitle()}</CardTitle>
-            <CardDescription className="text-destructive">
-              Virhe tietojen haussa Supabasesta
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-center h-[300px] text-muted-foreground">
-              <div className="text-center">
-                <Database className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>Ei voitu ladata trendidata Supabasesta</p>
-              </div>
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <TrendingUp className="h-5 w-5" />
+                {getAreaTitle()} - Trendianalyysi
+              </CardTitle>
+              <CardDescription>{locationName}</CardDescription>
             </div>
-          </CardContent>
-        </Card>
-      </div>
+            <Badge variant="outline" className="text-xs">
+              <AlertCircle className="h-3 w-3 mr-1" />
+              Simuloitu data
+            </Badge>
+          </div>
+        </CardHeader>
+        <CardContent className="flex items-center justify-center h-64">
+          <div className="text-center text-muted-foreground">
+            <AlertCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
+            <p>Virhe ladattaessa trenditietoja</p>
+            <p className="text-sm mt-2">Käytetään simuloitua dataa</p>
+          </div>
+        </CardContent>
+      </Card>
     );
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-      <Card>
-        <CardHeader>
-          <CardTitle>{getChartTitle()}</CardTitle>
-          <CardDescription>
-            12 kuukauden kehitys - {location.charAt(0).toUpperCase() + location.slice(1)} (Supabase)
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ChartContainer config={chartConfig}>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={data}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis />
-                <ChartTooltip content={<ChartTooltipContent />} />
-                <Line 
-                  type="monotone" 
-                  dataKey="current" 
-                  stroke="var(--color-current)" 
-                  strokeWidth={2}
-                  dot={{ fill: "var(--color-current)" }}
-                />
-                <Line 
-                  type="monotone" 
-                  dataKey="target" 
-                  stroke="var(--color-target)" 
-                  strokeWidth={2}
-                  strokeDasharray="5 5"
-                  dot={false}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </ChartContainer>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Kustannuskehitys</CardTitle>
-          <CardDescription>
-            Kuukausittaiset kustannukset euroina (Supabase-data)
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ChartContainer config={chartConfig}>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={data}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis />
-                <ChartTooltip content={<ChartTooltipContent />} />
-                <Bar 
-                  dataKey="costs" 
-                  fill="var(--color-costs)"
-                  radius={[4, 4, 0, 0]}
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          </ChartContainer>
-        </CardContent>
-      </Card>
-    </div>
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <TrendingUp className="h-5 w-5" />
+              {getAreaTitle()} - Trendianalyysi (12kk)
+            </CardTitle>
+            <CardDescription>{locationName}</CardDescription>
+          </div>
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="text-xs">
+              <AlertCircle className="h-3 w-3 mr-1" />
+              Simuloitu data
+            </Badge>
+            <Badge variant="secondary" className="text-xs">
+              <Database className="h-3 w-3 mr-1" />
+              Supabase
+            </Badge>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="h-64">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={trends}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="month" />
+              <YAxis />
+              <Tooltip 
+                formatter={(value, name) => [value, name === 'current' ? 'Nykyinen' : name === 'target' ? 'Tavoite' : 'Kustannukset']}
+                labelFormatter={(label) => `Kuukausi: ${label}`}
+              />
+              <Legend 
+                formatter={(value) => value === 'current' ? 'Nykyinen' : value === 'target' ? 'Tavoite' : 'Kustannukset (€)'}
+              />
+              <Line 
+                type="monotone" 
+                dataKey="current" 
+                stroke="#8884d8" 
+                strokeWidth={2}
+                dot={{ fill: '#8884d8' }}
+              />
+              <Line 
+                type="monotone" 
+                dataKey="target" 
+                stroke="#82ca9d" 
+                strokeWidth={2}
+                strokeDasharray="5 5"
+                dot={{ fill: '#82ca9d' }}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+        
+        <div className="mt-4 text-xs text-muted-foreground bg-muted/30 p-2 rounded">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-1">
+              <AlertCircle className="h-3 w-3" />
+              <span>Trendidata on simuloitua - perustuu vuositietoihin</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <Database className="h-3 w-3" />
+              <span>Tallennettu Supabaseen</span>
+            </div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 };

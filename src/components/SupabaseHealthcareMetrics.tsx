@@ -2,7 +2,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { TrendingUp, TrendingDown, Clock, Loader2, Database } from 'lucide-react';
+import { TrendingUp, TrendingDown, Clock, Loader2, Database, Globe, AlertCircle } from 'lucide-react';
 import { useSupabaseMetrics } from '@/hooks/useSupabaseData';
 import { MetricData } from '@/services/supabaseService';
 
@@ -62,7 +62,7 @@ export const SupabaseHealthcareMetrics = ({ area, location }: SupabaseHealthcare
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-semibold">{getAreaTitle()} - {locationName}</h3>
           <div className="flex items-center gap-2 text-sm text-destructive">
-            <Clock className="h-4 w-4" />
+            <AlertCircle className="h-4 w-4" />
             Virhe Supabase-tietojen haussa
           </div>
         </div>
@@ -102,6 +102,34 @@ export const SupabaseHealthcareMetrics = ({ area, location }: SupabaseHealthcare
     );
   }
 
+  const getDataSourceBadge = (lastUpdated: string) => {
+    const isRecentData = new Date(lastUpdated).getTime() > Date.now() - 24 * 60 * 60 * 1000; // Less than 24h old
+    const isRealData = !lastUpdated.includes('fallback');
+    
+    if (isRealData && isRecentData) {
+      return (
+        <Badge variant="default" className="text-xs">
+          <Globe className="h-3 w-3 mr-1" />
+          THL Sotkanet
+        </Badge>
+      );
+    } else if (isRealData) {
+      return (
+        <Badge variant="secondary" className="text-xs">
+          <Globe className="h-3 w-3 mr-1" />
+          THL (vanha)
+        </Badge>
+      );
+    } else {
+      return (
+        <Badge variant="outline" className="text-xs">
+          <AlertCircle className="h-3 w-3 mr-1" />
+          Simuloitu
+        </Badge>
+      );
+    }
+  };
+
   const getMetricCards = () => {
     return Object.entries(metrics).map(([key, data]: [string, MetricData]) => {
       const percentage = Math.min((data.value / data.target) * 100, 100);
@@ -114,14 +142,17 @@ export const SupabaseHealthcareMetrics = ({ area, location }: SupabaseHealthcare
               <CardTitle className="text-sm font-medium capitalize">
                 {key.replace(/([A-Z])/g, ' $1').toLowerCase()}
               </CardTitle>
-              <Badge variant={isOnTarget ? "default" : "destructive"}>
-                {data.trend === 'up' ? (
-                  <TrendingUp className="h-3 w-3 mr-1" />
-                ) : (
-                  <TrendingDown className="h-3 w-3 mr-1" />
-                )}
-                {data.trend === 'up' ? '+' : '-'}5%
-              </Badge>
+              <div className="flex items-center gap-1">
+                {getDataSourceBadge(data.lastUpdated)}
+                <Badge variant={isOnTarget ? "default" : "destructive"}>
+                  {data.trend === 'up' ? (
+                    <TrendingUp className="h-3 w-3 mr-1" />
+                  ) : (
+                    <TrendingDown className="h-3 w-3 mr-1" />
+                  )}
+                  {data.trend === 'up' ? '+' : '-'}5%
+                </Badge>
+              </div>
             </div>
           </CardHeader>
           <CardContent>
@@ -157,6 +188,19 @@ export const SupabaseHealthcareMetrics = ({ area, location }: SupabaseHealthcare
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {getMetricCards()}
+      </div>
+
+      <div className="text-xs text-muted-foreground bg-muted/50 p-3 rounded-lg">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-1">
+            <Globe className="h-3 w-3" />
+            <span>THL Sotkanet = Haettu data</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <AlertCircle className="h-3 w-3" />
+            <span>Simuloitu = Esimerkki data</span>
+          </div>
+        </div>
       </div>
     </div>
   );
