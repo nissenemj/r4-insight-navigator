@@ -48,7 +48,7 @@ export const useRealtimeData = (area: string, location: string): RealtimeDataHoo
 
     return () => {
       console.log('🔌 Cleaning up realtime connection');
-      supabase.removeChannel(channel);
+      channel.unsubscribe();
       setIsConnected(false);
     };
   }, [area, location, toast]);
@@ -61,10 +61,10 @@ export const useRealtimeData = (area: string, location: string): RealtimeDataHoo
       const regionCode = location === 'all' ? '974' : location;
       const currentYear = new Date().getFullYear();
       
-      const response = await fetch(`${supabase.supabaseUrl}/functions/v1/sotkanet-api/sync?region=${regionCode}&year=${currentYear}`, {
+      const response = await fetch(`https://tixdqgipsacxnfocsuxm.supabase.co/functions/v1/sotkanet-api/sync?region=${regionCode}&year=${currentYear}`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${supabase.supabaseKey}`,
+          'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRpeGRxZ2lwc2FjeG5mb2NzdXhtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk3NDQwNTQsImV4cCI6MjA2NTMyMDA1NH0.OzR4sGXoL2fCMnEbDbyNslgpkDGM_d5LSArAOs84MfA`,
           'Content-Type': 'application/json',
         },
       });
