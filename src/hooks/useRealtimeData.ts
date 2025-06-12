@@ -40,11 +40,10 @@ export const useRealtimeData = (area: string, location: string): RealtimeDataHoo
           }
         }
       )
-      .on('subscribe', (status) => {
+      .subscribe((status) => {
         console.log('📡 Realtime subscription status:', status);
         setIsConnected(status === 'SUBSCRIBED');
-      })
-      .subscribe();
+      });
 
     return () => {
       console.log('🔌 Cleaning up realtime connection');
