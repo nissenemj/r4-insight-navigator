@@ -2,6 +2,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { TrendingUp, TrendingDown, Clock, Loader2, Database, Globe, AlertCircle } from 'lucide-react';
 import { useSupabaseMetrics } from '@/hooks/useSupabaseData';
 import { MetricData } from '@/services/supabaseService';
@@ -25,6 +26,24 @@ export const SupabaseHealthcareMetrics = ({ area, location }: SupabaseHealthcare
       tutkimus: 'Tutkimus & Opetus'
     };
     return titles[area as keyof typeof titles] || 'Mittarit';
+  };
+
+  const getVariableName = (key: string) => {
+    const variableNames: { [key: string]: string } = {
+      hoitotakuu: 'hoitotakuu_saavutus',
+      kayntimaara: 'avohoidon_kayntimaara_1000',
+      digipalvelut: 'digitaaliset_palvelut_kaytto',
+      jonotusaika: 'keskimaarainen_jonotusaika_pv',
+      leikkaukset: 'leikkausten_maara_1000',
+      peruutukset: 'leikkausperuutukset_prosentti',
+      odotusaika: 'paivystys_odotusaika_min',
+      paivystyskaynnit: 'paivystyskayntien_maara_1000',
+      uudelleenkaynnit: 'uudelleenkayntien_osuus_prosentti',
+      hankkeet: 'tutkimushankkeiden_maara',
+      palaute: 'opetuksen_arviointi_keskiarvo',
+      julkaisut: 'tieteellisten_julkaisujen_maara'
+    };
+    return variableNames[key] || `muuttuja_${key}`;
   };
 
   if (isLoading) {
@@ -103,7 +122,7 @@ export const SupabaseHealthcareMetrics = ({ area, location }: SupabaseHealthcare
   }
 
   const getDataSourceBadge = (lastUpdated: string) => {
-    const isRecentData = new Date(lastUpdated).getTime() > Date.now() - 24 * 60 * 60 * 1000; // Less than 24h old
+    const isRecentData = new Date(lastUpdated).getTime() > Date.now() - 24 * 60 * 60 * 1000;
     const isRealData = !lastUpdated.includes('fallback');
     
     if (isRealData && isRecentData) {
@@ -134,15 +153,21 @@ export const SupabaseHealthcareMetrics = ({ area, location }: SupabaseHealthcare
     return Object.entries(metrics).map(([key, data]: [string, MetricData]) => {
       const percentage = Math.min((data.value / data.target) * 100, 100);
       const isOnTarget = data.value >= data.target;
+      const variableName = getVariableName(key);
       
       return (
         <Card key={key} className="relative">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-medium capitalize">
-                {key.replace(/([A-Z])/g, ' $1').toLowerCase()}
-              </CardTitle>
-              <div className="flex items-center gap-1">
+              <div>
+                <CardTitle className="text-sm font-medium capitalize">
+                  {key.replace(/([A-Z])/g, ' $1').toLowerCase()}
+                </CardTitle>
+                <div className="text-xs text-muted-foreground mt-1">
+                  Muuttuja: {variableName}
+                </div>
+              </div>
+              <div className="flex flex-col items-end gap-1">
                 {getDataSourceBadge(data.lastUpdated)}
                 <Badge variant={isOnTarget ? "default" : "destructive"}>
                   {data.trend === 'up' ? (
@@ -177,7 +202,7 @@ export const SupabaseHealthcareMetrics = ({ area, location }: SupabaseHealthcare
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold">{getAreaTitle()} - {locationName}</h3>
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -189,6 +214,87 @@ export const SupabaseHealthcareMetrics = ({ area, location }: SupabaseHealthcare
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {getMetricCards()}
       </div>
+
+      {/* Data Table */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Database className="h-5 w-5" />
+            Haetut tiedot - Taulukkomuoto
+          </CardTitle>
+          <CardDescription>
+            Yksityiskohtainen näkymä kaikista haetuista mittareista
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Mittari</TableHead>
+                <TableHead>Muuttuja</TableHead>
+                <TableHead>Arvo</TableHead>
+                <TableHead>Tavoite</TableHead>
+                <TableHead>Yksikkö</TableHead>
+                <TableHead>Trendi</TableHead>
+                <TableHead>Tietolähde</TableHead>
+                <TableHead>Päivitetty</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {Object.entries(metrics).map(([key, data]: [string, MetricData]) => {
+                const variableName = getVariableName(key);
+                const isRealData = !data.lastUpdated.includes('fallback');
+                
+                return (
+                  <TableRow key={key}>
+                    <TableCell className="font-medium capitalize">
+                      {key.replace(/([A-Z])/g, ' $1').toLowerCase()}
+                    </TableCell>
+                    <TableCell className="text-xs font-mono">
+                      {variableName}
+                    </TableCell>
+                    <TableCell>
+                      <span className="font-semibold">
+                        {data.value.toFixed(1)}
+                      </span>
+                    </TableCell>
+                    <TableCell>{data.target}</TableCell>
+                    <TableCell>{data.unit || '%'}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                        {data.trend === 'up' ? (
+                          <TrendingUp className="h-3 w-3 text-green-500" />
+                        ) : (
+                          <TrendingDown className="h-3 w-3 text-red-500" />
+                        )}
+                        <span className="text-xs">
+                          {data.trend === 'up' ? '+5%' : '-5%'}
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {isRealData ? (
+                        <Badge variant="default" className="text-xs">
+                          <Globe className="h-3 w-3 mr-1" />
+                          THL
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-xs">
+                          <AlertCircle className="h-3 w-3 mr-1" />
+                          Sim
+                        </Badge>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground">
+                      {new Date(data.lastUpdated).toLocaleDateString('fi-FI')}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
 
       <div className="text-xs text-muted-foreground bg-muted/50 p-3 rounded-lg">
         <div className="flex items-center gap-4">
