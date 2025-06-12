@@ -1,8 +1,7 @@
 
 import { SotkanetDataPoint, SotkanetRegion, SotkanetIndicator } from '@/types/sotkanet';
 
-// Korjattu Sotkanet REST API URL
-const BASE_URL = 'https://sotkanet.fi/rest/1.1';
+// Backend API URL
 const BACKEND_BASE_URL = 'http://localhost:3001/api/sotkanet';
 
 // Pohjois-Savon hyvinvointialueen oikea ID
@@ -34,10 +33,11 @@ export const INDICATORS = {
 
 class SotkanetService {
   private async fetchFromBackend<T>(endpoint: string): Promise<T> {
-    console.log(`Haetaan backendistä: ${BACKEND_BASE_URL}${endpoint}`);
+    const url = `${BACKEND_BASE_URL}${endpoint}`;
+    console.log(`Fetching real Sotkanet data via backend: ${url}`);
     
     try {
-      const response = await fetch(`${BACKEND_BASE_URL}${endpoint}`, {
+      const response = await fetch(url, {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
@@ -48,11 +48,19 @@ class SotkanetService {
       console.log(`Backend response status: ${response.status}`);
       
       if (!response.ok) {
-        throw new Error(`Backend HTTP error! status: ${response.status}`);
+        const errorText = await response.text();
+        console.error('Backend error response:', errorText);
+        throw new Error(`Backend HTTP error! status: ${response.status}, message: ${errorText}`);
       }
       
       const data = await response.json();
-      console.log('Backend data received:', data);
+      console.log(`Real Sotkanet data received via backend:`, {
+        endpoint,
+        dataType: Array.isArray(data) ? 'array' : typeof data,
+        count: Array.isArray(data) ? data.length : 'N/A',
+        sample: Array.isArray(data) && data.length > 0 ? data[0] : data
+      });
+      
       return data;
       
     } catch (error) {
@@ -63,19 +71,21 @@ class SotkanetService {
 
   async getRegions(): Promise<SotkanetRegion[]> {
     try {
+      console.log('Fetching real regions from THL Sotkanet...');
       return await this.fetchFromBackend<SotkanetRegion[]>('/regions');
     } catch (error) {
-      console.error('Failed to fetch regions from backend:', error);
-      return [];
+      console.error('Failed to fetch regions from Sotkanet:', error);
+      throw error;
     }
   }
 
   async getIndicators(): Promise<SotkanetIndicator[]> {
     try {
+      console.log('Fetching real indicators from THL Sotkanet...');
       return await this.fetchFromBackend<SotkanetIndicator[]>('/indicators');
     } catch (error) {
-      console.error('Failed to fetch indicators from backend:', error);
-      return [];
+      console.error('Failed to fetch indicators from Sotkanet:', error);
+      throw error;
     }
   }
 
@@ -89,12 +99,12 @@ class SotkanetService {
       const region = regions[0] || PSHVA_REGION_ID;
       
       const endpoint = `/data/${indicator}?region=${region}&year=${currentYear}`;
-      console.log(`Backend indicator data endpoint: ${endpoint}`);
+      console.log(`Fetching real indicator data from THL Sotkanet: ${endpoint}`);
       
       return await this.fetchFromBackend<SotkanetDataPoint[]>(endpoint);
     } catch (error) {
-      console.error('Failed to fetch indicator data from backend:', error);
-      return [];
+      console.error(`Failed to fetch indicator ${indicator} data from Sotkanet:`, error);
+      throw error;
     }
   }
 
@@ -106,12 +116,12 @@ class SotkanetService {
       const latestYear = Math.max(...years);
       
       const endpoint = `/data/${indicator}?region=${PSHVA_REGION_ID}&year=${latestYear}`;
-      console.log(`Backend comparison data endpoint: ${endpoint}`);
+      console.log(`Fetching real comparison data from THL Sotkanet: ${endpoint}`);
       
       return await this.fetchFromBackend<SotkanetDataPoint[]>(endpoint);
     } catch (error) {
-      console.error('Failed to fetch comparison data from backend:', error);
-      return [];
+      console.error(`Failed to fetch comparison data for indicator ${indicator}:`, error);
+      throw error;
     }
   }
 
@@ -124,12 +134,41 @@ class SotkanetService {
       const indicatorsParam = indicators.join(',');
       
       const endpoint = `/multiple?indicators=${indicatorsParam}&region=${region}&year=${currentYear}`;
-      console.log(`Backend multiple indicators endpoint: ${endpoint}`);
+      console.log(`Fetching real multiple indicators from THL Sotkanet: ${endpoint}`);
       
       return await this.fetchFromBackend<SotkanetDataPoint[]>(endpoint);
     } catch (error) {
-      console.error('Failed to fetch multiple indicators from backend:', error);
-      return [];
+      console.error(`Failed to fetch multiple indicators [${indicators.join(',')}] from Sotkanet:`, error);
+      throw error;
+    }
+  }
+
+  async getAreaData(
+    area: string,
+    region: string = PSHVA_REGION_ID.toString()
+  ): Promise<SotkanetDataPoint[]> {
+    try {
+      const currentYear = new Date().getFullYear() - 1;
+      
+      const endpoint = `/area/${area}?region=${region}&year=${currentYear}`;
+      console.log(`Fetching real area data from THL Sotkanet: ${endpoint}`);
+      
+      return await this.fetchFromBackend<SotkanetDataPoint[]>(endpoint);
+    } catch (error) {
+      console.error(`Failed to fetch area ${area} data from Sotkanet:`, error);
+      throw error;
+    }
+  }
+
+  async testIndicator(indicator: number): Promise<any> {
+    try {
+      const endpoint = `/test/${indicator}`;
+      console.log(`Testing indicator ${indicator} with THL Sotkanet...`);
+      
+      return await this.fetchFromBackend<any>(endpoint);
+    } catch (error) {
+      console.error(`Failed to test indicator ${indicator}:`, error);
+      throw error;
     }
   }
 }
