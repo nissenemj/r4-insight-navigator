@@ -7,7 +7,8 @@ export const useResearchPublications = (organizationId?: string) => {
     queryKey: ['research-publications', organizationId],
     queryFn: () => researchService.getPublications(organizationId),
     staleTime: 1000 * 60 * 30, // 30 minutes
-    refetchOnWindowFocus: false
+    refetchOnWindowFocus: false,
+    retry: 2
   });
 };
 
@@ -16,7 +17,8 @@ export const useFundingCalls = (organizationId?: string) => {
     queryKey: ['funding-calls', organizationId],
     queryFn: () => researchService.getFundingCalls(organizationId),
     staleTime: 1000 * 60 * 30, // 30 minutes
-    refetchOnWindowFocus: false
+    refetchOnWindowFocus: false,
+    retry: 2
   });
 };
 
@@ -25,6 +27,17 @@ export const useEducationMetrics = (region?: string) => {
     queryKey: ['education-metrics', region],
     queryFn: () => researchService.getEducationMetrics(region),
     staleTime: 1000 * 60 * 60, // 1 hour
-    refetchOnWindowFocus: false
+    refetchOnWindowFocus: false,
+    retry: 2
+  });
+};
+
+export const useResearchTrends = (region?: string) => {
+  return useQuery({
+    queryKey: ['research-trends', region],
+    queryFn: () => researchService.getResearchTrends(region),
+    staleTime: 1000 * 60 * 30, // 30 minutes
+    refetchOnWindowFocus: false,
+    retry: 2
   });
 };
