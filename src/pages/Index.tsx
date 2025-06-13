@@ -72,8 +72,14 @@ const Index = () => {
 
           {areas.map((area) => (
             <TabsContent key={area.id} value={area.id} className="space-y-6">
-              <SupabaseHealthcareMetrics area={area.id} location={selectedLocation} />
-              <SupabaseTrendChart area={area.id} location={selectedLocation} />
+              {area.id === 'tutkimus' ? (
+                <ResearchDashboard location={selectedLocation} />
+              ) : (
+                <>
+                  <SupabaseHealthcareMetrics area={area.id} location={selectedLocation} />
+                  <SupabaseTrendChart area={area.id} location={selectedLocation} />
+                </>
+              )}
             </TabsContent>
           ))}
         </Tabs>
