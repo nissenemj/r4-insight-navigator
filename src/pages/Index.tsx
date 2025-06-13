@@ -6,6 +6,7 @@ import { SupabaseHealthcareMetrics } from '@/components/SupabaseHealthcareMetric
 import { SupabaseTrendChart } from '@/components/SupabaseTrendChart';
 import { DataSyncPanel } from '@/components/DataSyncPanel';
 import { AlertPanel } from '@/components/AlertPanel';
+import { ResearchDashboard } from '@/components/ResearchDashboard';
 import { Badge } from '@/components/ui/badge';
 import { Database, Server, Zap } from 'lucide-react';
 
