@@ -291,17 +291,17 @@ router.get('/multiple', async (req, res) => {
   }
 });
 
-// Hae osa-alueen kaikki indikaattorit
+// Hae osa-alueen kaikki indikaattorit - päivitetyt numerot
 router.get('/area/:area', async (req, res) => {
   try {
     const { area } = req.params;
     const { region = PSHVA_REGION_ID, year = 2023 } = req.query;
     
-    // Määritä indikaattorit osa-alueen mukaan
+    // Määritä indikaattorit osa-alueen mukaan - uudet Sotkanet ID:t
     const areaIndicators = {
-      avoterveydenhuolto: [2230, 1820, 4420],
-      leikkaustoiminta: [2150, 1840, 2160],
-      paivystys: [2170, 1782, 2180],
+      avoterveydenhuolto: [3176, 2676, 1552, 4123, 5549, 5534, 5543],
+      leikkaustoiminta: [5083, 2989, 3336, 3000],
+      paivystys: [5081, 5077, 5104, 5244],
       tutkimus: [3200, 3210, 3220]
     };
     

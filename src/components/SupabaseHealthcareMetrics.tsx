@@ -28,17 +28,55 @@ export const SupabaseHealthcareMetrics = ({ area, location }: SupabaseHealthcare
     return titles[area as keyof typeof titles] || 'Mittarit';
   };
 
+  const getMetricDisplayName = (key: string) => {
+    const displayNames: { [key: string]: string } = {
+      // Avoterveydenhuolto
+      hoitotakuu_3kk: 'Hoitotakuu: Odotusaika yli 3 kk',
+      hoitotakuu_7pv: 'Hoitotakuu: Odotusaika yli 7 pv',
+      kayntimaara_kaikki: 'Kaikki lääkärikäynnit',
+      kayntimaara_avosairaanhoito: 'Avosairaanhoidon käynnit',
+      digipalvelut_asioinut: 'Digitaalinen asiointi',
+      digipalvelut_korvasi: 'Digi korvasi perinteisen',
+      digipalvelut_esteet: 'Esteitä digi-palveluissa (65+)',
+      // Leikkaustoiminta
+      odotusaika_mediaani: 'Erikoissairaanhoidon odotusaika',
+      hoitojakso_pituus: 'Hoitojaksojen pituus',
+      odotusaika_yli6kk: 'Yli 6 kk odottaneet',
+      hoitopaivat_18_64: 'Hoitopäivät 18-64v',
+      // Päivystys
+      paivystys_perusterveydenhuolto: 'Päivystys: Perusterveydenhuolto',
+      paivystys_erikoissairaanhoito: 'Päivystys: Erikoissairaanhoito',
+      palanneet_48h_aikuiset: 'Palanneet 48h (aikuiset)',
+      palanneet_48h_lapset: 'Palanneet 48h (lapset)',
+      // Tutkimus
+      hankkeet: 'Tutkimushankkeet',
+      palaute: 'Opetuspalaute',
+      julkaisut: 'Tieteelliset julkaisut'
+    };
+    return displayNames[key] || key.replace(/_/g, ' ');
+  };
+
   const getVariableName = (key: string) => {
     const variableNames: { [key: string]: string } = {
-      hoitotakuu: 'hoitotakuu_saavutus',
-      kayntimaara: 'avohoidon_kayntimaara_1000',
-      digipalvelut: 'digitaaliset_palvelut_kaytto',
-      jonotusaika: 'keskimaarainen_jonotusaika_pv',
-      leikkaukset: 'leikkausten_maara_1000',
-      peruutukset: 'leikkausperuutukset_prosentti',
-      odotusaika: 'paivystys_odotusaika_min',
-      paivystyskaynnit: 'paivystyskayntien_maara_1000',
-      uudelleenkaynnit: 'uudelleenkayntien_osuus_prosentti',
+      // Avoterveydenhuolto  
+      hoitotakuu_3kk: 'odotusaika_yli_3kk_prosentti',
+      hoitotakuu_7pv: 'odotusaika_yli_7pv_prosentti',
+      kayntimaara_kaikki: 'kaikki_laakarикaynnit_1000',
+      kayntimaara_avosairaanhoito: 'avosairaanhoito_kaynnit_1000',
+      digipalvelut_asioinut: 'digitaalinen_asiointi_prosentti',
+      digipalvelut_korvasi: 'digi_korvasi_perinteisen_prosentti',
+      digipalvelut_esteet: 'digi_esteet_65plus_prosentti',
+      // Leikkaustoiminta
+      odotusaika_mediaani: 'erikoissairaanhoito_odotusaika_mediaani',
+      hoitojakso_pituus: 'toimenpiteellinen_hoitojakso_pituus',
+      odotusaika_yli6kk: 'yli_6kk_odottaneet_10000',
+      hoitopaivat_18_64: 'toimenpiteelliset_hoitopaivat_18_64_1000',
+      // Päivystys
+      paivystys_perusterveydenhuolto: 'paivystys_pth_kaynnit_1000',
+      paivystys_erikoissairaanhoito: 'paivystys_esh_kaynnit_1000',
+      palanneet_48h_aikuiset: 'paivystys_palanneet_48h_aikuiset_prosentti',
+      palanneet_48h_lapset: 'paivystys_palanneet_48h_lapset_prosentti',
+      // Tutkimus
       hankkeet: 'tutkimushankkeiden_maara',
       palaute: 'opetuksen_arviointi_keskiarvo',
       julkaisut: 'tieteellisten_julkaisujen_maara'
@@ -154,14 +192,15 @@ export const SupabaseHealthcareMetrics = ({ area, location }: SupabaseHealthcare
       const percentage = Math.min((data.value / data.target) * 100, 100);
       const isOnTarget = data.value >= data.target;
       const variableName = getVariableName(key);
+      const displayName = getMetricDisplayName(key);
       
       return (
         <Card key={key} className="relative">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-sm font-medium capitalize">
-                  {key.replace(/([A-Z])/g, ' $1').toLowerCase()}
+                <CardTitle className="text-sm font-medium">
+                  {displayName}
                 </CardTitle>
                 <div className="text-xs text-muted-foreground mt-1">
                   Muuttuja: {variableName}
@@ -211,7 +250,7 @@ export const SupabaseHealthcareMetrics = ({ area, location }: SupabaseHealthcare
         </div>
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {getMetricCards()}
       </div>
 
@@ -223,7 +262,7 @@ export const SupabaseHealthcareMetrics = ({ area, location }: SupabaseHealthcare
             Haetut tiedot - Taulukkomuoto
           </CardTitle>
           <CardDescription>
-            Yksityiskohtainen näkymä kaikista haetuista mittareista
+            Yksityiskohtainen näkymä kaikista haetuista mittareista uusilla Sotkanet-indikaattoreilla
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -232,6 +271,7 @@ export const SupabaseHealthcareMetrics = ({ area, location }: SupabaseHealthcare
               <TableRow>
                 <TableHead>Mittari</TableHead>
                 <TableHead>Muuttuja</TableHead>
+                <TableHead>Sotkanet ID</TableHead>
                 <TableHead>Arvo</TableHead>
                 <TableHead>Tavoite</TableHead>
                 <TableHead>Yksikkö</TableHead>
@@ -243,15 +283,19 @@ export const SupabaseHealthcareMetrics = ({ area, location }: SupabaseHealthcare
             <TableBody>
               {Object.entries(metrics).map(([key, data]: [string, MetricData]) => {
                 const variableName = getVariableName(key);
+                const displayName = getMetricDisplayName(key);
                 const isRealData = !data.lastUpdated.includes('fallback');
                 
                 return (
                   <TableRow key={key}>
-                    <TableCell className="font-medium capitalize">
-                      {key.replace(/([A-Z])/g, ' $1').toLowerCase()}
+                    <TableCell className="font-medium">
+                      {displayName}
                     </TableCell>
                     <TableCell className="text-xs font-mono">
                       {variableName}
+                    </TableCell>
+                    <TableCell className="text-xs">
+                      ID: {data.name}
                     </TableCell>
                     <TableCell>
                       <span className="font-semibold">
@@ -300,11 +344,11 @@ export const SupabaseHealthcareMetrics = ({ area, location }: SupabaseHealthcare
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-1">
             <Globe className="h-3 w-3" />
-            <span>THL Sotkanet = Haettu data</span>
+            <span>THL Sotkanet = Päivitetyt indikaattorit</span>
           </div>
           <div className="flex items-center gap-1">
             <AlertCircle className="h-3 w-3" />
-            <span>Simuloitu = Esimerkki data</span>
+            <span>Simuloitu = Fallback-data</span>
           </div>
         </div>
       </div>

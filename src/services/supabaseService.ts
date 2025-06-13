@@ -307,45 +307,66 @@ class SupabaseService {
     });
   }
 
-  // Helper methods
+  // Helper methods - päivitetty uusilla indikaattoreilla
   private getIndicatorKey(sotkanetId: number): string {
     const mapping: { [key: number]: string } = {
-      2230: 'hoitotakuu',
-      1820: 'kayntimaara',
-      4420: 'digipalvelut',
-      2150: 'jonotusaika',
-      1840: 'leikkaukset',
-      2160: 'peruutukset',
-      2170: 'odotusaika',
-      1782: 'paivystyskaynnit',
-      2180: 'uudelleenkaynnit'
+      // Avoterveydenhuolto
+      3176: 'hoitotakuu_3kk',
+      2676: 'hoitotakuu_7pv',
+      1552: 'kayntimaara_kaikki',
+      4123: 'kayntimaara_avosairaanhoito',
+      5549: 'digipalvelut_asioinut',
+      5534: 'digipalvelut_korvasi',
+      5543: 'digipalvelut_esteet',
+      // Leikkaustoiminta
+      5083: 'odotusaika_mediaani',
+      2989: 'hoitojakso_pituus',
+      3336: 'odotusaika_yli6kk',
+      3000: 'hoitopaivat_18_64',
+      // Päivystys
+      5081: 'paivystys_perusterveydenhuolto',
+      5077: 'paivystys_erikoissairaanhoito',
+      5104: 'palanneet_48h_aikuiset',
+      5244: 'palanneet_48h_lapset'
     };
     return mapping[sotkanetId] || `indicator_${sotkanetId}`;
   }
 
   private getDefaultValue(sotkanetId: number): number {
     const defaults: { [key: number]: number } = {
-      2230: 88.5, 1820: 2847, 4420: 67.3,
-      2150: 42.7, 1840: 156, 2160: 8.2,
-      2170: 28.5, 1782: 892, 2180: 12.1
+      // Avoterveydenhuolto
+      3176: 8.5, 2676: 12.3, 1552: 2947, 4123: 2156,
+      5549: 67.3, 5534: 68.9, 5543: 23.7,
+      // Leikkaustoiminta
+      5083: 67.2, 2989: 8.5, 3336: 62.1, 3000: 187,
+      // Päivystys
+      5081: 427, 5077: 465, 5104: 6.8, 5244: 5.2
     };
     return defaults[sotkanetId] || 100;
   }
 
   private getDefaultTarget(sotkanetId: number): number {
     const targets: { [key: number]: number } = {
-      2230: 95, 1820: 3000, 4420: 80,
-      2150: 30, 1840: 180, 2160: 5,
-      2170: 20, 1782: 800, 2180: 10
+      // Avoterveydenhuolto
+      3176: 5, 2676: 7, 1552: 3000, 4123: 2800,
+      5549: 80, 5534: 75, 5543: 15,
+      // Leikkaustoiminta  
+      5083: 60, 2989: 7, 3336: 50, 3000: 200,
+      // Päivystys
+      5081: 400, 5077: 400, 5104: 8, 5244: 8
     };
     return targets[sotkanetId] || 100;
   }
 
   private getDefaultUnit(sotkanetId: number): string {
     const units: { [key: number]: string } = {
-      2230: '%', 1820: '/1000', 4420: '%',
-      2150: 'pv', 1840: '/1000', 2160: '%',
-      2170: 'min', 1782: '/1000', 2180: '%'
+      // Avoterveydenhuolto
+      3176: '%', 2676: '%', 1552: '/1000', 4123: '/1000',
+      5549: '%', 5534: '%', 5543: '%',
+      // Leikkaustoiminta
+      5083: 'päivää', 2989: 'päivää', 3336: '/10000', 3000: '/1000',
+      // Päivystys
+      5081: '/1000', 5077: '/1000', 5104: '%', 5244: '%'
     };
     return units[sotkanetId] || '%';
   }
@@ -353,19 +374,25 @@ class SupabaseService {
   private getFallbackMetricsData(areaCategory: string): Record<string, MetricData> {
     const fallbackData: Record<string, Record<string, MetricData>> = {
       avoterveydenhuolto: {
-        hoitotakuu: { value: 88.5, target: 95, trend: 'down', unit: '%', name: 'hoitotakuu', lastUpdated: new Date().toISOString() },
-        kayntimaara: { value: 2847, target: 3000, trend: 'down', unit: '/1000', name: 'kayntimaara', lastUpdated: new Date().toISOString() },
-        digipalvelut: { value: 67.3, target: 80, trend: 'down', unit: '%', name: 'digipalvelut', lastUpdated: new Date().toISOString() }
+        hoitotakuu_3kk: { value: 8.5, target: 5, trend: 'down', unit: '%', name: 'hoitotakuu_3kk', lastUpdated: new Date().toISOString() },
+        hoitotakuu_7pv: { value: 12.3, target: 7, trend: 'down', unit: '%', name: 'hoitotakuu_7pv', lastUpdated: new Date().toISOString() },
+        kayntimaara_kaikki: { value: 2947, target: 3000, trend: 'down', unit: '/1000', name: 'kayntimaara_kaikki', lastUpdated: new Date().toISOString() },
+        kayntimaara_avosairaanhoito: { value: 2156, target: 2800, trend: 'down', unit: '/1000', name: 'kayntimaara_avosairaanhoito', lastUpdated: new Date().toISOString() },
+        digipalvelut_asioinut: { value: 67.3, target: 80, trend: 'down', unit: '%', name: 'digipalvelut_asioinut', lastUpdated: new Date().toISOString() },
+        digipalvelut_korvasi: { value: 68.9, target: 75, trend: 'down', unit: '%', name: 'digipalvelut_korvasi', lastUpdated: new Date().toISOString() },
+        digipalvelut_esteet: { value: 23.7, target: 15, trend: 'down', unit: '%', name: 'digipalvelut_esteet', lastUpdated: new Date().toISOString() }
       },
       leikkaustoiminta: {
-        jonotusaika: { value: 42.7, target: 30, trend: 'down', unit: 'pv', name: 'jonotusaika', lastUpdated: new Date().toISOString() },
-        leikkaukset: { value: 156, target: 180, trend: 'down', unit: '/1000', name: 'leikkaukset', lastUpdated: new Date().toISOString() },
-        peruutukset: { value: 8.2, target: 5, trend: 'down', unit: '%', name: 'peruutukset', lastUpdated: new Date().toISOString() }
+        odotusaika_mediaani: { value: 67.2, target: 60, trend: 'down', unit: 'päivää', name: 'odotusaika_mediaani', lastUpdated: new Date().toISOString() },
+        hoitojakso_pituus: { value: 8.5, target: 7, trend: 'down', unit: 'päivää', name: 'hoitojakso_pituus', lastUpdated: new Date().toISOString() },
+        odotusaika_yli6kk: { value: 62.1, target: 50, trend: 'down', unit: '/10000', name: 'odotusaika_yli6kk', lastUpdated: new Date().toISOString() },
+        hoitopaivat_18_64: { value: 187, target: 200, trend: 'down', unit: '/1000', name: 'hoitopaivat_18_64', lastUpdated: new Date().toISOString() }
       },
       paivystys: {
-        odotusaika: { value: 28.5, target: 20, trend: 'down', unit: 'min', name: 'odotusaika', lastUpdated: new Date().toISOString() },
-        paivystyskaynnit: { value: 892, target: 800, trend: 'up', unit: '/1000', name: 'paivystyskaynnit', lastUpdated: new Date().toISOString() },
-        uudelleenkaynnit: { value: 12.1, target: 10, trend: 'down', unit: '%', name: 'uudelleenkaynnit', lastUpdated: new Date().toISOString() }
+        paivystys_perusterveydenhuolto: { value: 427, target: 400, trend: 'up', unit: '/1000', name: 'paivystys_perusterveydenhuolto', lastUpdated: new Date().toISOString() },
+        paivystys_erikoissairaanhoito: { value: 465, target: 400, trend: 'up', unit: '/1000', name: 'paivystys_erikoissairaanhoito', lastUpdated: new Date().toISOString() },
+        palanneet_48h_aikuiset: { value: 6.8, target: 8, trend: 'up', unit: '%', name: 'palanneet_48h_aikuiset', lastUpdated: new Date().toISOString() },
+        palanneet_48h_lapset: { value: 5.2, target: 8, trend: 'up', unit: '%', name: 'palanneet_48h_lapset', lastUpdated: new Date().toISOString() }
       },
       tutkimus: {
         hankkeet: { value: 23, target: 25, trend: 'down', unit: 'kpl', name: 'hankkeet', lastUpdated: new Date().toISOString() },

@@ -1,26 +1,32 @@
 
 const axios = require('axios');
 
-// Sotkanet API integraatio
+// Sotkanet API integraatio - päivitetyt indikaattorit
 const SOTKANET_BASE_URL = 'https://sotkanet.fi/api/2';
 const PSHVA_CODE = 'HVA16';
 
-// KPI-indikaattorit osa-alueittain
+// KPI-indikaattorit osa-alueittain - uudet Sotkanet ID:t
 const INDICATORS = {
   avoterveydenhuolto: {
-    hoitotakuu: 2230,
-    kayntimaara: 1820,
-    digipalvelut: 4420,
+    hoitotakuu_3kk: 3176,
+    hoitotakuu_7pv: 2676,
+    kayntimaara_kaikki: 1552,
+    kayntimaara_avosairaanhoito: 4123,
+    digipalvelut_asioinut: 5549,
+    digipalvelut_korvasi: 5534,
+    digipalvelut_esteet: 5543,
   },
   leikkaustoiminta: {
-    jonotusaika: 2150,
-    leikkaukset: 1840,
-    peruutukset: 2160,
+    odotusaika_mediaani: 5083,
+    hoitojakso_pituus: 2989,
+    odotusaika_yli6kk: 3336,
+    hoitopaivat_18_64: 3000,
   },
   paivystys: {
-    odotusaika: 2170,
-    kayntimaara: 1782,
-    uudelleenkaynnit: 2180,
+    paivystys_perusterveydenhuolto: 5081,
+    paivystys_erikoissairaanhoito: 5077,
+    palanneet_48h_aikuiset: 5104,
+    palanneet_48h_lapset: 5244,
   },
   tutkimus: {
     hankkeet: 3200,
@@ -29,11 +35,19 @@ const INDICATORS = {
   }
 };
 
-// Tavoitearvot
+// Päivitetyt tavoitearvot
 const TARGETS = {
-  avoterveydenhuolto: { hoitotakuu: 95, kayntimaara: 3000, digipalvelut: 80 },
-  leikkaustoiminta: { jonotusaika: 30, leikkaukset: 180, peruutukset: 5 },
-  paivystys: { odotusaika: 20, kayntimaara: 800, uudelleenkaynnit: 10 },
+  avoterveydenhuolto: {
+    hoitotakuu_3kk: 5, hoitotakuu_7pv: 7, kayntimaara_kaikki: 3000, kayntimaara_avosairaanhoito: 2800,
+    digipalvelut_asioinut: 80, digipalvelut_korvasi: 75, digipalvelut_esteet: 15
+  },
+  leikkaustoiminta: {
+    odotusaika_mediaani: 60, hoitojakso_pituus: 7, odotusaika_yli6kk: 50, hoitopaivat_18_64: 200
+  },
+  paivystys: {
+    paivystys_perusterveydenhuolto: 400, paivystys_erikoissairaanhoito: 400,
+    palanneet_48h_aikuiset: 8, palanneet_48h_lapset: 8
+  },
   tutkimus: { hankkeet: 25, palaute: 4.0, julkaisut: 20 }
 };
 
@@ -226,9 +240,17 @@ async function getCostData(region, period) {
 
 function getSimulatedValue(area, key) {
   const simulatedData = {
-    avoterveydenhuolto: { hoitotakuu: 91, kayntimaara: 2847, digipalvelut: 73 },
-    leikkaustoiminta: { jonotusaika: 42, leikkaukset: 156, peruutukset: 8 },
-    paivystys: { odotusaika: 28, kayntimaara: 892, uudelleenkaynnit: 12 },
+    avoterveydenhuolto: {
+      hoitotakuu_3kk: 8.5, hoitotakuu_7pv: 12.3, kayntimaara_kaikki: 2947, kayntimaara_avosairaanhoito: 2156,
+      digipalvelut_asioinut: 67.3, digipalvelut_korvasi: 68.9, digipalvelut_esteet: 23.7
+    },
+    leikkaustoiminta: {
+      odotusaika_mediaani: 67.2, hoitojakso_pituus: 8.5, odotusaika_yli6kk: 62.1, hoitopaivat_18_64: 187
+    },
+    paivystys: {
+      paivystys_perusterveydenhuolto: 427, paivystys_erikoissairaanhoito: 465,
+      palanneet_48h_aikuiset: 6.8, palanneet_48h_lapset: 5.2
+    },
     tutkimus: { hankkeet: 23, palaute: 4.2, julkaisut: 18 }
   };
   
